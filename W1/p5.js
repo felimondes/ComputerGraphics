@@ -1,3 +1,13 @@
+import {
+    createUniformBuffer,
+    updateUniformBuffer
+} from "../utility/uniformVariables.js";
+
+import {
+    createCircle
+} from "../utility/createCircle.js";
+
+
 "use strict";
 window.onload = function () { main(); }
 
@@ -27,124 +37,10 @@ function configureCanvas(device) {
 
 }
 
-function createUniformBuffer(device, variables) {
-    // First calculate how many bytes we need
-    let size = 0;
-    let offsets = [];
-
-    for (const variable of variables) {
-        let alignment;
-        let byteLength;
-
-        if (typeof variable === "number") {
-            // f32
-            alignment = 4;
-            byteLength = 4;
-        }
-        else if (typeof variable === "boolean") {
-            // WGSL bool in a uniform buffer takes 4 bytes
-            alignment = 4;
-            byteLength = 4;
-        }
-        else if (Array.isArray(variable) && variable.length === 2) {
-            // vec2f
-            alignment = 8;
-            byteLength = 8;
-        }
-        else if (Array.isArray(variable) && variable.length === 3) {
-            // vec3f
-            alignment = 16;
-            byteLength = 12;
-        }
-        else if (Array.isArray(variable) && variable.length === 4) {
-            // vec4f
-            alignment = 16;
-            byteLength = 16;
-        }
-        else {
-            throw new Error("Unsupported uniform type");
-        }
-
-        // Add padding so the variable starts at the correct alignment
-        size = Math.ceil(size / alignment) * alignment;
-
-        offsets.push({
-            variable,
-            offset: size,
-            byteLength
-        });
-
-        size += byteLength;
-    }
-
-    // Uniform buffers need their size rounded up appropriately
-    size = Math.ceil(size / 16) * 16;
-
-    const uniforms = new ArrayBuffer(size);
-
-    // Now write the variables into the buffer
-    for (const { variable, offset } of offsets) {
-
-        if (typeof variable === "number") {
-            new Float32Array(uniforms, offset, 1)[0] = variable;
-        }
-
-        else if (typeof variable === "boolean") {
-            new Uint32Array(uniforms, offset, 1)[0] =
-                variable ? 1 : 0;
-        }
-
-        else if (Array.isArray(variable)) {
-            new Float32Array(uniforms, offset, variable.length)
-                .set(variable);
-        }
-    }
-
-    const uniformBuffer = device.createBuffer({
-        size: uniforms.byteLength,
-        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-    });
-
-    device.queue.writeBuffer(uniformBuffer, 0, uniforms);
-
-    return {
-        uniforms,
-        uniformBuffer
-    };
-}
-
-
-function createCircle(r = 0.5, n = 15) {
-    const positions = [];
-
-    const center = vec2(0, 0);
-
-    for (let i = 0; i < n; i++) {
-
-        const theta = (2 * Math.PI * i) / n;
-        const nextTheta = (2 * Math.PI * (i + 1)) / n;
-
-        const point = vec2(
-            r * Math.cos(theta),
-            r * Math.sin(theta)
-        );
-
-        const nextPoint = vec2(
-            r * Math.cos(nextTheta),
-            r * Math.sin(nextTheta)
-        );
-
-        positions.push(point);
-        positions.push(center);
-        positions.push(nextPoint);
-    }
-    return positions;
-}
-
-function createPositionBufferAndLayout(device) {
+function createPositionBufferAndLayout(device, positionsGenerator) {
 
     //Create buffer for points
-    var positions = createCircle()
+    var positions = positionsGenerator
 
     const positionBuffer = device.createBuffer({
         size: flatten(positions).byteLength,
@@ -239,34 +135,47 @@ function orbitalAngularVelocity(theta_t0, w = 0.01) { //1 radians per change
     return theta_t1;
 }
 
+function moveObject(t, v, r) {
+    //Controlling movement slide
+    let t1 = add(t, v);
 
+    let sx = Math.sign(1 - r - Math.abs(t1[0]));
+    let sy = Math.sign(1 - r - Math.abs(t1[1]));
 
-
-function updateUniformBuffer(device, uniformBuffer, theta) {
-    const uniforms = new Float32Array([theta]);
-    device.queue.writeBuffer(
-        uniformBuffer,
-        0,
-        uniforms
+    let v1 = vec2(
+        sx * v[0],
+        sy * v[1]
     );
+
+    return {
+        position: t1,
+        velocity: v1
+    };
 }
+
 
 async function main() {
     let device = await createDevice();
     let { canvas, context, canvasFormat } = configureCanvas(device);
-    let { positions, positionBuffer, positionBufferLayout } = createPositionBufferAndLayout(device) //layout and buffer stem from the same thing, so its ok to make them together i believe.
+
+    let r = 0.5
+    let n = 15
+    let { positions, positionBuffer, positionBufferLayout } = createPositionBufferAndLayout(device, createCircle(r,n)) //layout and buffer stem from the same thing, so its ok to make them together i believe.
     let wgsl = await createShaderModule(device);
     let pipeline = createPipeline(device, wgsl, positionBufferLayout, canvasFormat);
 
     let theta = Math.PI / 4;
-    let translation = vec2(0,0);
-    let { byteLength, uniforms, uniformBuffer } = createUniformBuffer(device, [theta, translation]);
+    let angularVeloctiy = 0.01
+    let translation = vec2(0.0, 0.0);
+    let velocity = vec2(0.0, 0.01);
+    let uniformBuffer = createUniformBuffer(device, [theta, translation]);
 
     let bindGroup = createBindGroup(device, uniformBuffer, pipeline);
 
     function animate() {
-        theta = orbitalAngularVelocity(theta, 0.01);
-        updateUniformBuffer(device, uniformBuffer, theta);
+        theta = orbitalAngularVelocity(theta, angularVeloctiy);
+        ({ position: translation, velocity } = moveObject(translation, velocity, r));
+        updateUniformBuffer(device, uniformBuffer, [theta, translation]);
 
         render(device, context, pipeline, positionBuffer, bindGroup, positions);
         requestAnimationFrame(animate);
