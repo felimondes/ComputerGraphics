@@ -1,136 +1,170 @@
-export function createUniformBuffer(device, variables) {
-    const uniforms = createUniformData(variables);
+const uniformTypes = {
+    f32: {
+        alignment: 4,
+        byteLength: 4
+    },
+
+    vec2: {
+        alignment: 8,
+        byteLength: 8
+    },
+
+    vec3: {
+        alignment: 16,
+        byteLength: 12
+    },
+
+    vec4: {
+        alignment: 16,
+        byteLength: 16
+    },
+
+    mat4: {
+        alignment: 16,
+        byteLength: 64
+    }
+};
+
+export function createBuffer(device, layout) {
+
+    const uniformLayout = calculateUniformLayout(layout);
 
     const uniformBuffer = device.createBuffer({
-        size: uniforms.byteLength,
-        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+        size: uniformLayout.byteLength,
+        usage:
+            GPUBufferUsage.UNIFORM |
+            GPUBufferUsage.COPY_DST
     });
 
-    device.queue.writeBuffer(uniformBuffer, 0, uniforms);
-
-    return uniformBuffer;
-}
-
-
-export function updateUniformBuffer(device, uniformBuffer, variables) {
-    const uniforms = createUniformData(variables);
-
-    device.queue.writeBuffer(
-        uniformBuffer,
-        0,
-        uniforms
-    );
-}
-
-function getUniformInfo(variable) {
-    if (typeof variable === "number") {
-        return {
-            alignment: 4,
-            byteLength: 4,
-            type: "f32"
-        };
-    }
-
-    if (typeof variable === "boolean") {
-        return {
-            alignment: 4,
-            byteLength: 4,
-            type: "bool"
-        };
-    }
-
-    if (Array.isArray(variable)) {
-        if (variable.length === 2) {
-            return {
-                alignment: 8,
-                byteLength: 8,
-                type: "vec2"
-            };
-        }
-
-        if (variable.length === 3) {
-            return {
-                alignment: 16,
-                byteLength: 12,
-                type: "vec3"
-            };
-        }
-
-        if (variable.length === 4) {
-            return {
-                alignment: 16,
-                byteLength: 16,
-                type: "vec4"
-            };
-        }
-    }
-
-    throw new Error("Unsupported uniform type");
-}
-
-function alignOffset(offset, alignment) {
-    return Math.ceil(offset / alignment) * alignment;
-}
-
-function calculateUniformLayout(variables) {
-    let offset = 0;
-    const layout = [];
-
-    for (const variable of variables) {
-        const info = getUniformInfo(variable);
-
-        offset = alignOffset(offset, info.alignment);
-
-        layout.push({
-            variable,
-            offset,
-            type: info.type
-        });
-
-        offset += info.byteLength;
-    }
-
-    const byteLength = alignOffset(offset, 16);
-
     return {
-        layout,
-        byteLength
+        buffer: uniformBuffer,
+        layout: uniformLayout
     };
 }
 
+//
+export function updateBuffer(device, uniform, values) {
 
-function writeUniform(uniforms, variable, offset, type) {
-    if (type === "f32") {
-        new Float32Array(uniforms, offset, 1)[0] = variable;
-    }
+    const data = new ArrayBuffer(
+        uniform.layout.byteLength
+    );
 
-    else if (type === "bool") {
-        new Uint32Array(uniforms, offset, 1)[0] =
-            variable ? 1 : 0;
-    }
+    for (const item of uniform.layout.items) {
 
-    else if (type === "vec2" ||
-        type === "vec3" ||
-        type === "vec4") {
-        new Float32Array(uniforms, offset, variable.length)
-            .set(variable);
-    }
-}
+        const value = values[item.name];
 
-function createUniformData(variables) {
-    const { layout, byteLength } =
-        calculateUniformLayout(variables);
+        if (value === undefined) {
+            throw new Error(
+                `Missing uniform value: ${item.name}`
+            );
+        }
 
-    const uniforms = new ArrayBuffer(byteLength);
-
-    for (const item of layout) {
         writeUniform(
-            uniforms,
-            item.variable,
+            data,
+            value,
             item.offset,
             item.type
         );
     }
 
-    return uniforms;
+    device.queue.writeBuffer(
+        uniform.buffer,
+        0,
+        data
+    );
+}
+
+//Return items in the buffer (name, type, their offset) + total space needed
+function calculateUniformLayout(layout) {
+    let offset = 0;
+    const items = [];
+
+    for (const variable of layout) {
+
+        const info = uniformTypes[variable.type];
+
+        if (!info) {
+            throw new Error(
+                `Unknown uniform type: ${variable.type}`
+            );
+        }
+
+        offset = alignOffset(
+            offset,
+            info.alignment
+        );
+        items.push({
+            name: variable.name,
+            type: variable.type,
+            offset: offset
+        });
+
+        offset += info.byteLength;
+    }
+    return {
+        items,
+        byteLength: alignOffset(offset, 16)
+    };
+}
+
+function writeUniform(
+    data,
+    value,
+    offset,
+    type
+) {
+
+    if (type === "f32") {
+
+        new Float32Array(
+            data,
+            offset,
+            1
+        )[0] = value;
+
+    }
+
+    else if (type === "vec2") {
+
+        new Float32Array(
+            data,
+            offset,
+            2
+        ).set(value);
+
+    }
+
+    else if (type === "vec3") {
+
+        new Float32Array(
+            data,
+            offset,
+            3
+        ).set(value);
+
+    }
+
+    else if (type === "vec4") {
+
+        new Float32Array(
+            data,
+            offset,
+            4
+        ).set(value);
+
+    }
+
+    else if (type === "mat4") {
+
+        new Float32Array(
+            data,
+            offset,
+            16
+        ).set(flatten(value));
+
+    }
+}
+
+function alignOffset(offset, alignment) {
+    return Math.ceil(offset / alignment) * alignment;
 }
