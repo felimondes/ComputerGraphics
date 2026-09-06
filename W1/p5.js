@@ -1,18 +1,18 @@
-import {
-    createUniformBuffer,
-    updateUniformBuffer
-} from "../utility/uniformVariables.js";
-
-import {
-    createCircle
-} from "../utility/createCircle.js";
-
+import * as movement from "../utility/movement.js";
+import { Circle } from "../utility/objects/circle.js";
+import * as uniformVariables from "../utility/uniformVariables.js";
 
 "use strict";
-window.onload = function () { main(); }
+window.onload = function () {
+    main();
+}
 
 
-
+let device;
+const world = {
+    min: vec3(-1, -1, -1),
+    max: vec3(1, 1, 1)
+};
 async function createDevice() {
     const gpu = navigator.gpu;
     const adapter = await gpu.requestAdapter();
@@ -20,7 +20,7 @@ async function createDevice() {
     return device;
 }
 
-function configureCanvas(device) {
+function configureCanvas() {
 
     const canvas = document.getElementById('my-canvas');
     const context = canvas.getContext('webgpu');
@@ -37,10 +37,7 @@ function configureCanvas(device) {
 
 }
 
-function createPositionBufferAndLayout(device, positionsGenerator) {
-
-    //Create buffer for points
-    var positions = positionsGenerator
+function createPositionBufferAndLayout(positions) {
 
     const positionBuffer = device.createBuffer({
         size: flatten(positions).byteLength,
@@ -50,23 +47,22 @@ function createPositionBufferAndLayout(device, positionsGenerator) {
 
     //Vertex buffer layout
     const positionBufferLayout = {
-        arrayStride: sizeof['vec2'],
+        arrayStride: sizeof['vec3'],
         attributes: [{
-            format: 'float32x2',
+            format: 'float32x3',
             offset: 0,
             shaderLocation: 0, // Position, see vertex shader
         }],
     }
 
     return {
-        positions,
         positionBuffer,
         positionBufferLayout
     }
 
 }
 
-async function createShaderModule(device) {
+async function createShaderModule() {
     const shaderElement = document.getElementById("wgsl");
     const shaderCode = await fetch(shaderElement.src).then(response => response.text());
     return device.createShaderModule({
@@ -75,7 +71,7 @@ async function createShaderModule(device) {
     });
 }
 
-function createPipeline(device, wgsl, positionBufferLayout, canvasFormat) {
+function createPipeline(wgsl, positionBufferLayout, canvasFormat) {
     //Create pipeline
     const pipeline = device.createRenderPipeline({
         layout: 'auto',
@@ -97,7 +93,7 @@ function createPipeline(device, wgsl, positionBufferLayout, canvasFormat) {
     return pipeline
 }
 
-function createBindGroup(device, uniformBuffer, pipeline) {
+function createBindGroup(uniformBuffer, pipeline) {
 
     return device.createBindGroup({
         layout: pipeline.getBindGroupLayout(0),
@@ -108,7 +104,7 @@ function createBindGroup(device, uniformBuffer, pipeline) {
     });
 }
 
-function render(device, context, pipeline, positionBuffer, bindGroup, positions) {
+function render(context, pipeline, positionBuffer, bindGroup, positions) {
 
     const encoder = device.createCommandEncoder();
     const pass = encoder.beginRenderPass({
@@ -130,57 +126,62 @@ function render(device, context, pipeline, positionBuffer, bindGroup, positions)
 
 }
 
-function orbitalAngularVelocity(theta_t0, w = 0.01) { //1 radians per change
-    var theta_t1 = theta_t0 + w
-    return theta_t1;
-}
-
-function moveObject(t, v, r) {
-    //Controlling movement slide
-    let t1 = add(t, v);
-
-    let sx = Math.sign(1 - r - Math.abs(t1[0]));
-    let sy = Math.sign(1 - r - Math.abs(t1[1]));
-
-    let v1 = vec2(
-        sx * v[0],
-        sy * v[1]
-    );
-
-    return {
-        position: t1,
-        velocity: v1
-    };
-}
-
 
 async function main() {
-    let device = await createDevice();
-    let { canvas, context, canvasFormat } = configureCanvas(device);
+    //Init
+    device = await createDevice();
+    let { canvas, context, canvasFormat } = configureCanvas();
 
-    let r = 0.5
-    let n = 15
-    let { positions, positionBuffer, positionBufferLayout } = createPositionBufferAndLayout(device, createCircle(r,n)) //layout and buffer stem from the same thing, so its ok to make them together i believe.
-    let wgsl = await createShaderModule(device);
-    let pipeline = createPipeline(device, wgsl, positionBufferLayout, canvasFormat);
+    let radius = 0.5;
+    let segments = 15;
+    let c = new Circle(radius, segments)
+    c.theta = 0;
+    c.angularVelocity = 1;
+    c.velocity = vec3(0.0, 0.01, 0.0);
 
-    let theta = Math.PI / 4;
-    let angularVeloctiy = 0.01
-    let translation = vec2(0.0, 0.0);
-    let velocity = vec2(0.0, 0.01);
-    let uniformBuffer = createUniformBuffer(device, [theta, translation]);
 
-    let bindGroup = createBindGroup(device, uniformBuffer, pipeline);
+    let { positionBuffer, positionBufferLayout } = createPositionBufferAndLayout(c.positions)
+    let uniforms = uniformVariables.createBuffer(device, [
+        {
+            name: "model",
+            type: "mat4"
+        }
+    ]);
 
+    let wgsl = await createShaderModule();
+    let pipeline = createPipeline(wgsl, positionBufferLayout, canvasFormat);
+    let bindGroup = createBindGroup(uniforms.buffer, pipeline);
+
+    
+    
+    uniformVariables.updateBuffer(device, uniforms, {
+        model: c.getModelMatrix()
+    });
+
+    movement.bounce(c, world);
+
+
+
+    render(context, pipeline, positionBuffer, bindGroup, c.positions);
+
+    //Animation
     function animate() {
-        theta = orbitalAngularVelocity(theta, angularVeloctiy);
-        ({ position: translation, velocity } = moveObject(translation, velocity, r));
-        updateUniformBuffer(device, uniformBuffer, [theta, translation]);
 
-        render(device, context, pipeline, positionBuffer, bindGroup, positions);
+        //Update simulation state
+        c.theta = c.theta + c.angularVelocity;
+
+        movement.bounce(c, world);
+
+        uniformVariables.updateBuffer(device, uniforms, {
+            model: c.getModelMatrix()
+        });
+
+        render(context, pipeline, positionBuffer, bindGroup, c.positions);
         requestAnimationFrame(animate);
     }
     animate();
+
+
 }
 
 

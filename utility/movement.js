@@ -1,25 +1,21 @@
+export function bounce(object, world) {
 
-
-export function bounce(position, velocity, radius) {
-
-    const nextPosition = add(position, velocity);
-
-    const sx = Math.sign(
-        1 - radius - Math.abs(nextPosition[0])
+    const nextPosition = add(
+        object.center,
+        object.velocity
     );
 
-    const sy = Math.sign(
-        1 - radius - Math.abs(nextPosition[1])
-    );
+    const radius = object.getBoundingRadius();
 
-    const nextVelocity = vec3(
-        sx * velocity[0],
-        sy * velocity[1],
-        0
-    );
+    for (let axis = 0; axis < 3; axis++) {
 
-    return {
-        position: nextPosition,
-        velocity: nextVelocity
-    };
+        if (
+            nextPosition[axis] + radius > world.max[axis] ||
+            nextPosition[axis] - radius < world.min[axis]
+        ) {
+            object.velocity[axis] *= -1;
+        }
+    }
+
+    object.center = nextPosition;
 }
