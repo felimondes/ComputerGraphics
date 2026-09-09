@@ -9,12 +9,13 @@ export class Object {
         }
         this.center = vec3(0, 0, 0);
         this.velocity = vec3(0, 0, 0),
-        this.theta = 0; //rotate angle in polar coordinates
+        
+        this.rotation = vec3(0, 0, 0);
         this.angularVelocity = vec3(0, 0, 0);
-        this.color = vec3(1, 1, 1);
+
     }
 
-
+    
     getBoundingRadius(){
         throw new Error(
             "getBoundingRadius must be implemented by the subclass."
@@ -30,8 +31,31 @@ export class Object {
 
 
     getModelMatrix() {
-        throw new Error(
-            "getModelMatrix() must be implemented by the subclass."
+        const translation =
+            translate(
+                this.center[0],
+                this.center[1],
+                this.center[2]
+            );
+
+        const rotationX =
+            rotateX(this.rotation[0]);
+
+        const rotationY =
+            rotateY(this.rotation[1]);
+
+        const rotationZ =
+            rotateZ(this.rotation[2]);
+
+        const rotation =
+            mult(
+                rotationZ,
+                mult(rotationY, rotationX)
+            );
+
+        return mult(
+            translation,
+            rotation
         );
     }
 }

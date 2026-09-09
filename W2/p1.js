@@ -1,5 +1,7 @@
+import { AnimationController } from "../utility/animationController.js";
 import * as movement from "../utility/movement.js";
 import * as circle from "../utility/objects/circle.js";
+import * as rectangle from "../utility/objects/rectangle.js";
 import * as uniform from "../utility/uniform.js";
 import * as vertex from "../utility/vertex.js";
 
@@ -8,11 +10,41 @@ window.onload = function () {
     main();
 }
 
-let device;
+
+const device = await createDevice();
 const world = {
     min: vec3(-1, -1, -1),
     max: vec3(1, 1, 1)
 };
+
+let { canvas, context, canvasFormat } = configureCanvas();
+
+let c = rectangle.createRandom();
+
+//Make vertex and uniform buffers
+let circleBuffer = vertex.createBufferAndLayout(device, c.positions)
+let uniforms = uniform.createBufferAndLayout(device,
+    [{ name: "model", type: "mat4" }]);
+
+
+//Pipeline
+let shaderModule = await createShaderModule("wgsl");
+let pipeline = createPipeline([circleBuffer.layout]);
+let bindGroup = uniform.createBindGroup(device, uniforms.buffer, pipeline);
+uniform.add(device, uniforms, {
+    model: c.getModelMatrix()
+});
+
+//Animation
+const animationController = new AnimationController( {onStep: animate})
+animationController.startLoop();
+
+
+async function main() {
+    console.log("hey from main")
+}
+
+
 async function createDevice() {
     const gpu = navigator.gpu;
     const adapter = await gpu.requestAdapter();
@@ -29,7 +61,6 @@ function configureCanvas() {
         device: device,
         format: canvasFormat,
     });
-
     return {
         canvas,
         context,
@@ -46,7 +77,7 @@ async function createShaderModule(name) {
     });
 }
 
-function createPipeline(wgsl, positionBufferLayouts, canvasFormat) {
+function createPipeline(positionBufferLayouts) {
 
     if (!Array.isArray(positionBufferLayouts)) {
         positionBufferLayouts = [positionBufferLayouts];
@@ -56,13 +87,13 @@ function createPipeline(wgsl, positionBufferLayouts, canvasFormat) {
         layout: 'auto',
 
         vertex: {
-            module: wgsl,
+            module: shaderModule,
             entryPoint: 'main_vs',
             buffers: positionBufferLayouts,
         },
 
         fragment: {
-            module: wgsl,
+            module: shaderModule,
             entryPoint: 'main_fs',
             targets: [{ format: canvasFormat }],
         },
@@ -72,8 +103,7 @@ function createPipeline(wgsl, positionBufferLayouts, canvasFormat) {
     return pipeline
 }
 
-function render(context, pipeline, positionBuffer, bindGroup, positions) {
-
+function render() {
     const encoder = device.createCommandEncoder();
     const pass = encoder.beginRenderPass({
         colorAttachments: [{
@@ -85,58 +115,25 @@ function render(context, pipeline, positionBuffer, bindGroup, positions) {
     });
 
     pass.setPipeline(pipeline);
-    pass.setVertexBuffer(0, positionBuffer);
+    pass.setVertexBuffer(0, circleBuffer.buffer);
     pass.setBindGroup(0, bindGroup);
-    pass.draw(positions.length);
+    pass.draw(c.positions.length);
 
     pass.end();
     device.queue.submit([encoder.finish()]);
 
 }
 
-function animate(c, context, pipeline, buffer, bindGroup, uniforms) {
-
-    //Make new matrix
+function animate() {
     c.rotation = add(c.rotation, c.angularVelocity);
     movement.bounce(c, world);
+
     let model = c.getModelMatrix()
-    
+
     uniform.add(device, uniforms, {
         model: model
     });
-
-    render(context, pipeline, buffer, bindGroup, c.positions);
-
-    requestAnimationFrame(() =>
-        animate(c, context, pipeline, buffer, bindGroup, uniforms)
-    );
-}
-
-async function main() {
-
-    //Init
-    device = await createDevice();
-    let { canvas, context, canvasFormat } = configureCanvas();
-
-    // let c = circle.createRandom();
-    let c = circle.createRandom();
-
-    //Make vertex and uniform buffers
-    let circleBuffer = vertex.createBufferAndLayout(device, c.positions)
-    let uniforms = uniform.createBufferAndLayout(device,
-        [{ name: "model", type: "mat4" }]);
-
-    //Pipeline
-    let shaderModule = await createShaderModule("wgsl");
-
-    let pipeline = createPipeline(shaderModule, [circleBuffer.layout], canvasFormat); //among others: Adding vertex buffers here
-    let bindGroup = uniform.createBindGroup(device, uniforms.buffer, pipeline); //Adding uniform buffers here
-    uniform.add(device, uniforms, {
-        model: c.getModelMatrix()
-    });
-
-    //animation
-    animate(c, context, pipeline, circleBuffer.buffer, bindGroup, uniforms);
+    render();
 }
 
 

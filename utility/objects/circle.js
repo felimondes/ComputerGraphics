@@ -1,6 +1,15 @@
+import { randomBetween } from "../functions.js";
 import { Object } from "./object.js";
 
-
+export function createRandom() {
+        let radius = randomBetween(0.1, 0.4);
+        let segments = Math.floor(10*radius + 10);
+        let c = new Circle(radius, segments)
+        c.rotation = vec3(0.0, 0.0, 0.0);
+        c.angularVelocity = vec3(0.0, 0, 1);
+        c.velocity = vec3(0.005, 0.01, 0.0);
+        return c
+    }
 
 export class Circle extends Object {
 
@@ -11,25 +20,7 @@ export class Circle extends Object {
         this.segments = segments;
         this.positions = this.createShape();
     }
-  
-    getModelMatrix() {
-        const translation =
-            translate(
-                this.center[0],
-                this.center[1],
-                this.center[2]
-            );
 
-        const rotation =
-            rotateZ(this.theta);
-
-        return mult(
-            translation,
-            rotation
-        );
-    }
-
-      
     createShape() {
         const positions = [];
         const center = vec3(0, 0, 0);
@@ -59,4 +50,5 @@ export class Circle extends Object {
     getBoundingRadius() {
         return this.radius;
     }
+
 }
