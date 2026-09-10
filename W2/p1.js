@@ -215,8 +215,6 @@ async function main() {
 }
 
 
-//ai sloppy
-
 function createGridPositions(world, cellSize) {
     const positions = [];
 

@@ -2,7 +2,6 @@
 let nextObjectId = 0;
 
 export class Object {
-
     constructor(center) {
         if (new.target === Object) {
             throw new Error(
@@ -16,7 +15,7 @@ export class Object {
 
         this.center = center;
         this.velocity = vec3(0, 0, 0);
-        this.acceleration = vec3(0, -9.81, 0);
+        this.acceleration = vec3(0, 0, 0);
         this.timeStep = 1 / 60;
         this.mass = 1;
         this.restitution = 0.85;
@@ -33,11 +32,20 @@ export class Object {
 
     ifOutOfBoundsFlipVelocity(nextPosition, radius, world, velocity) {
         for (let axis = 0; axis < 3; axis++) {
-            if (
-                nextPosition[axis] + radius > world.max[axis] ||
-                nextPosition[axis] - radius < world.min[axis]
-            ) {
-                velocity[axis] *= -1;
+            if (nextPosition[axis] + radius > world.max[axis]) {
+                nextPosition[axis] = world.max[axis] - radius;
+
+                if (velocity[axis] > 0) {
+                    velocity[axis] *= -1;
+                }
+            }
+
+            if (nextPosition[axis] - radius < world.min[axis]) {
+                nextPosition[axis] = world.min[axis] + radius;
+
+                if (velocity[axis] < 0) {
+                    velocity[axis] *= -1;
+                }
             }
         }
     }
@@ -92,13 +100,13 @@ export class Object {
             this.velocity = subtract(
                 this.velocity, mult(
                     impulse,
-                    vec3(1/massA, 1/massA, 1/massA))
+                    vec3(1 / massA, 1 / massA, 1 / massA))
             );
 
             other.velocity = add(
                 other.velocity, mult(
                     impulse,
-                    vec3(1/massB, 1/massB, 1/massB))
+                    vec3(1 / massB, 1 / massB, 1 / massB))
             );
 
         }
