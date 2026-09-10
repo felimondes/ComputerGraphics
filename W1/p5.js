@@ -1,7 +1,7 @@
-import * as movement from "../utility/movement.js";
-import * as circle from "../utility/objects/circle.js";
-import * as uniform from "../utility/uniform.js";
-import * as vertex from "../utility/vertex.js";
+import * as movement from "./utility/movement.js";
+import * as circle from "./utility/objects/circle.js";
+import * as uniform from "./utility/uniform.js";
+import * as vertex from "./utility/vertex.js";
 
 "use strict";
 window.onload = function () {
