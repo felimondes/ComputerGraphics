@@ -1,3 +1,4 @@
+
 let nextObjectId = 0;
 
 export class Object {
@@ -15,7 +16,10 @@ export class Object {
 
         this.center = center;
         this.velocity = vec3(0, 0, 0);
-        this.acceleration = vec3(0, 0, 0);
+        this.acceleration = vec3(0, -9.81, 0);
+        this.timeStep = 1 / 60;
+        this.mass = 1;
+        this.restitution = 0.85;
         this.rotation = vec3(0, 0, 0);
         this.angularVelocity = vec3(0, 0, 0);
     }
@@ -27,22 +31,93 @@ export class Object {
     }
 
 
-    getNextVelocity() {
-        return add(this.velocity, this.acceleration);
+    ifOutOfBoundsFlipVelocity(nextPosition, radius, world, velocity) {
+        for (let axis = 0; axis < 3; axis++) {
+            if (
+                nextPosition[axis] + radius > world.max[axis] ||
+                nextPosition[axis] - radius < world.min[axis]
+            ) {
+                velocity[axis] *= -1;
+            }
+        }
     }
 
-    getNextPosition() {
-        return add(this.center, this.getNextVelocity());
+    step(world) {
+        const dt = this.timeStep;
+        const dt_v = vec3(dt, dt, dt)
+
+        let nextVelocity = add(
+            this.velocity,
+            mult(this.acceleration, dt_v));
+
+        let nextPosition = add(
+            this.center,
+            mult(nextVelocity, dt_v)
+        );
+
+
+        let velocity = nextVelocity;
+
+        const radius = this.getBoundingRadius();
+
+        this.ifOutOfBoundsFlipVelocity(nextPosition, radius, world, velocity);
+
+        this.velocity = velocity;
+        this.center = nextPosition;
+        this.aabb = this.updateAABB();
+    }
+
+    resolveCollision(other, collisionData) {
+        const normal = collisionData.normal;
+        const overlap = collisionData.overlap;
+
+        const relativeVelocity = subtract(other.velocity, this.velocity);
+        const velocityAlongNormal = dot(relativeVelocity, normal);
+
+        const massA = this.mass;
+        const massB = other.mass;
+        const restitution = Math.min(
+            this.restitution,
+            other.restitution
+        );
+
+        if (velocityAlongNormal < 0) {
+            const impulseMagnitude = (
+                -(1 + restitution) * velocityAlongNormal
+            ) / ((1 / massA) + (1 / massB));
+
+
+            const impulse = scale(impulseMagnitude, normal);
+
+            this.velocity = subtract(
+                this.velocity, mult(
+                    impulse,
+                    vec3(1/massA, 1/massA, 1/massA))
+            );
+
+            other.velocity = add(
+                other.velocity, mult(
+                    impulse,
+                    vec3(1/massB, 1/massB, 1/massB))
+            );
+
+        }
+
+        const totalMass = massA + massB;
+        const correctionA = (massB / totalMass) * overlap;
+        const correctionB = (massA / totalMass) * overlap;
+
+        this.center = subtract(this.center, mult(normal, vec3(correctionA, correctionA, correctionA)));
+        other.center = add(other.center, mult(normal, vec3(correctionB, correctionB, correctionB)));
+
+        this.aabb = this.updateAABB();
+        other.aabb = other.updateAABB();
+
+        return true;
     }
 
     getModelMatrix() {
-        const translation =
-            translate(
-                this.center[0],
-                this.center[1],
-                this.center[2]
-            );
-
+        const translation = translate(this.center);
         const rotationX =
             rotateX(this.rotation[0]);
 
@@ -57,7 +132,6 @@ export class Object {
                 rotationZ,
                 mult(rotationY, rotationX)
             );
-
         return mult(
             translation,
             rotation

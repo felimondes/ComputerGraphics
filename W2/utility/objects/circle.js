@@ -7,13 +7,10 @@ export function createRandom() {
             randomBetween(-0.5, 0.5),
             0
     );
-    const radius = randomBetween(0.1, 0.2);
+    // const radius = randomBetween(0.1, 0.2);
+    const radius = 0.1
     const segments = Math.floor(10 * radius + 10);
     const c = new Circle(center, radius, segments)
-    c.rotation = vec3(0.0, 0.0, 0.0);
-    c.angularVelocity = vec3(0.0, 0, 0);
-    c.velocity = vec3(0.01, 0.02, 0.0);
-    c.acceleration = vec3(0.0, 0.0, 0.0);
     return c
 }
 

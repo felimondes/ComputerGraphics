@@ -977,3 +977,36 @@ function normalMatrix(m, flag)
     }
 
 }
+
+center = vec3(0,0,0);
+velocity = vec3(1,1,1);
+acceleration = vec3(10, 10, 10);
+const dt = 1/60
+
+
+const dt_v = vec3(dt, dt, dt)
+
+let nextVelocity = add(
+    velocity, 
+    mult(acceleration, dt_v));
+
+let nextPosition = add(
+    center,
+    mult(nextVelocity, dt_v)
+);
+
+console.log(nextPosition);
+
+let nextVelocity2 = vec3(
+    velocity[0] + acceleration[0] * dt,
+    velocity[1] + acceleration[1] * dt,
+    velocity[2] + acceleration[2] * dt
+);
+
+let nextPosition2 = vec3(
+    center[0] + nextVelocity2[0] * dt,
+    center[1] + nextVelocity2[1] * dt,
+    center[2] + nextVelocity2[2] * dt
+);
+
+console.log(nextPosition2)

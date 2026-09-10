@@ -9,9 +9,8 @@ export function createRandom(width = randomBetween(0.1, 0.5), height = randomBet
     );
     const r = new Rectangle(center, width, height);
     r.rotation = vec3(0.0, 0.0, 0.0);
-    r.angularVelocity = vec3(0.0, 0, Math.PI / 4);
+    r.angularVelocity = vec3(0.0, 0, 0);
     r.velocity = vec3(0.005, 0.01, 0.0);
-    r.acceleration = vec3(0.0, 0.0, 0.0);
     return r;
 };
 
@@ -20,7 +19,6 @@ export function createFixed(center, width = randomBetween(0.2, 0.8), height = ra
     r.rotation = vec3(0.0, 0.0, 0.0);
     r.angularVelocity = vec3(0.0, 0.0, 0.0);
     r.velocity = vec3(0.0, 0.0, 0.);
-    r.acceleration = vec3(0.0, 0.0, 0.0);
     return r;
 };
 
@@ -30,7 +28,6 @@ export function createFixed1(center, width = randomBetween(0.2, 0.8), height = r
     r.rotation = vec3(0.0, 0.0, 0.0);
     r.angularVelocity = vec3(0.0, 0.0, 0.0);
     r.velocity = vec3(0.0, -0.03, 0.);
-    r.acceleration = vec3(0.0, 0.0, 0.0);
     return r;
 };
 
@@ -39,7 +36,6 @@ export function createFixed2(center, width = randomBetween(0.2, 0.8), height = r
     r.rotation = vec3(0.0, 0.0, 0.0);
     r.angularVelocity = vec3(0.0, 0.0, 0.0);
     r.velocity = vec3(0.0, 0.01, 0.);
-    r.acceleration = vec3(0.0, 0.0, 0.0);
     return r;
 };
 

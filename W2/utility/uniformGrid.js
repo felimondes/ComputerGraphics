@@ -1,20 +1,4 @@
 
-// function _argumentsToArray( args )
-// {
-//     return [].concat.apply( [], Array.prototype.slice.apply(args) );
-// }
-// function vec3()
-// {
-//     var result = _argumentsToArray( arguments );
-
-//     switch ( result.length ) {
-//     case 0: result.push( 0.0 );
-//     case 1: result.push( 0.0 );
-//     case 2: result.push( 0.0 );
-//     }
-
-//     return result.splice( 0, 3 );
-// }
 
 export class UniformGrid {
 
@@ -130,6 +114,8 @@ export class UniformGrid {
     }
 
 
+
+
     isAABBsColliding(aabb0, aabb1) {
 
         return (
@@ -142,7 +128,8 @@ export class UniformGrid {
             aabb0.min[2] <= aabb1.max[2] &&
             aabb0.max[2] >= aabb1.min[2]
         );
-    }
+    };
+
 
 
     actualObjectCollision(objectA, objectB) {
@@ -172,7 +159,10 @@ export class UniformGrid {
         for (const triangleA of trianglesA) {
             for (const vertexB of verticesB) {
                 if (this.isPointInTriangle(vertexB, triangleA[0], triangleA[1], triangleA[2])) {
-                    return true;
+                    return {
+                        normal: this.getCollisionNormalVector(objectA, objectB),
+                        overlap: this.getCollisionOverlap(objectA, objectB)
+                    };
                 }
             }
         }
@@ -180,12 +170,42 @@ export class UniformGrid {
         for (const triangleB of trianglesB) {
             for (const vertexA of verticesA) {
                 if (this.isPointInTriangle(vertexA, triangleB[0], triangleB[1], triangleB[2])) {
-                    return true;
+                    return {
+                        normal: this.getCollisionNormalVector(objectA, objectB),
+                        overlap: this.getCollisionOverlap(objectA, objectB)
+                    };
                 }
             }
         }
 
-        return false;
+        return null;
+    }
+
+
+    getCollisionNormalVector(objectA, objectB) {
+        const dx = objectB.center[0] - objectA.center[0];
+        const dy = objectB.center[1] - objectA.center[1];
+        const dz = objectB.center[2] - objectA.center[2];
+        const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+        if (distance > 0.000001) {
+            return vec3(dx / distance, dy / distance, dz / distance);
+        }
+
+        return vec3(0, 1, 0);
+    }
+
+    getCollisionOverlap(objectA, objectB) {
+        const dx = objectB.center[0] - objectA.center[0];
+        const dy = objectB.center[1] - objectA.center[1];
+        const dz = objectB.center[2] - objectA.center[2];
+        const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+        const totalRadius =
+            objectA.getBoundingRadius() +
+            objectB.getBoundingRadius();
+
+        return Math.max(0, totalRadius - distance);
     }
 
 
@@ -198,14 +218,9 @@ export class UniformGrid {
                 vec4(position[0], position[1], position[2], 1)
             );
 
-            return vec3(
-                transformed[0],
-                transformed[1],
-                transformed[2]
-            );
+            return transformed;
         });
     }
-
 
     isPointInTriangle(point, a, b, c) {
         const totalArea = this.triangleArea(a, b, c);
@@ -239,7 +254,7 @@ export class UniformGrid {
         this.assignGridLocationsToObjects(objects);
 
         const checkedPairs = new Set();
-        const AABBcollisions = [];
+        const collisions = [];
 
         // Go through every grid cell
         for (const cell of this.grid.values()) {
@@ -252,7 +267,6 @@ export class UniformGrid {
                 continue;
             }
 
-            console.log("2 objects in a cell!")
 
             // Compare every pair of objects in this cell
             for (let i = 0; i < objectsInCell.length; i++) {
@@ -292,22 +306,27 @@ export class UniformGrid {
                         continue;
                     }
 
+
                     // Extra verification: only claim a real collision
                     // if one object's vertices actually intersect the other.
-                    if (this.actualObjectCollision(
+                    const collisionData = this.actualObjectCollision(
                         objectA,
                         objectB
-                    )) {
-                        AABBcollisions.push([
+                    );
+
+                    if (collisionData) {
+                        collisions.push({
                             objectA,
-                            objectB
-                        ]);
+                            objectB,
+                            normal: collisionData.normal,
+                            overlap: collisionData.overlap
+                        });
                     }
                 }
             }
         }
 
-        return AABBcollisions;
+        return collisions;
     }
 }
 

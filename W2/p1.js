@@ -2,13 +2,10 @@ import { AnimationController } from "./utility/animationController.js";
 import { ObjectsController } from "./utility/objectsController.js";
 import { UniformGrid } from "./utility/uniformGrid.js";
 
-import * as movement from "./utility/movement.js";
-
 import * as uniform from "./utility/uniform.js";
 import * as vertex from "./utility/vertex.js";
 
 import * as circle from "./utility/objects/circle.js";
-import * as rectangle from "./utility/objects/rectangle.js";
 
 "use strict";
 window.onload = function () {
@@ -41,7 +38,6 @@ new ObjectsController({
 //Adding objects
 const uniformGrid = new UniformGrid(world);
 
-// addObject(rectangle.createFixed(vec3(0.0, -0.9, 0), 1.5, 0.01));
 addObject(circle.createRandom())
 
 
@@ -138,7 +134,7 @@ function render() {
         }],
     });
 
-    
+
     // Draw grid
     pass.setPipeline(gridPipeline);
     uniform.add(device, gridUniforms, {
@@ -152,16 +148,21 @@ function render() {
 
     //Draw objects
     pass.setPipeline(pipeline);
-    const collisions = uniformGrid.isAABBCollisions(collisionObjects);
-    const collidedObjectIds = new Set();
 
-    for (const [objectA, objectB] of collisions) {
-        collidedObjectIds.add(objectA.id);
-        collidedObjectIds.add(objectB.id);
+    for (const item of sceneObjects) {
+        item.object.rotation = add(item.object.rotation, item.object.angularVelocity);
+        item.object.step(world);
     }
 
-    if (collisions.length > 0) {
-        console.log("collided!!", collisions)
+    const collisions = uniformGrid.isAABBCollisions(collisionObjects);
+    
+
+    const collidedObjectIds = new Set();
+    for (const collision of collisions) {
+        const { objectA, objectB, normal, overlap } = collision;
+        collidedObjectIds.add(objectA.id);
+        collidedObjectIds.add(objectB.id);
+        objectA.resolveCollision(objectB, { normal, overlap });
     }
 
     for (const item of sceneObjects) {
@@ -206,11 +207,6 @@ function render() {
 }
 
 function animate() {
-    for (const item of sceneObjects) {
-        item.object.rotation = add(item.object.rotation, item.object.angularVelocity);
-        movement.bounce(item.object, world);
-    }
-
     render();
 }
 
