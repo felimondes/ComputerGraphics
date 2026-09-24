@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>My Page</title>
+    <script type="text/javascript" src="../../MV.js"></script>
+    <script type="module" src="p.js"></script>
+</head>
+
+<body>
+    <script id="wgsl" type="x-shader" src="p.wgsl"></script>
+    <button id="clear-button" type="button">Clear canvas</button>
+
+    <label for="clear-color">Clear color:</label>
+    <select id="clear-color">
+        <option value="black">Black</option>
+        <option value="red">Red</option>
+        <option value="yellow">Yellow</option>
+        <option value="green">Green</option>
+        <option value="blue">Blue</option>
+        <option value="magenta">Magenta</option>
+        <option value="cyan">Cyan</option>
+        <option value="white">White</option>
+        <option value="blueish" selected>Funny Blue</option>
+    </select>
+
+    <label for="point-color">Point color:</label>
+    <select id="point-color">
+        <option value="black" selected>Black</option>
+        <option value="red">Red</option>
+        <option value="yellow">Yellow</option>
+        <option value="green">Green</option>
+        <option value="blue">Blue</option>
+        <option value="magenta">Magenta</option>
+        <option value="cyan">Cyan</option>
+        <option value="white">White</option>
+        <option value="blueish">Cornflower</option>
+    </select>
+    
+    <canvas id="my-canvas" width="512" height="512">
+        Please use a browser that supports HTML5 canvas.
+    </canvas>
+</body>
+
+</html>

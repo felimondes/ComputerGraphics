@@ -42,29 +42,6 @@ export class Object {
         }
     }
 
-    step(world) {
-        const dt = this.timeStep;
-        const dt_v = vec3(dt, dt, dt)
-
-        let nextVelocity = add(
-            this.velocity,
-            mult(this.acceleration, dt_v));
-
-        let nextPosition = add(
-            this.center,
-            mult(nextVelocity, dt_v)
-        );
-
-
-        let velocity = nextVelocity;
-
-        const radius = this.getBoundingRadius();
-        this.ifOutOfBoundsFlipVelocity(nextPosition, radius, world, velocity);
-
-        this.velocity = velocity;
-        this.center = nextPosition;
-    }
-
     getM() { //Rotation and translation aka. RT = M
         const translation = translate(this.center);
         const rotationX =

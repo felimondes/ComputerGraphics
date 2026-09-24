@@ -9,10 +9,7 @@ window.onload = function () {
 }
 
 const device = await createDevice();
-const world = {
-    min: vec3(-1, -1, -1),
-    max: vec3(1, 1, 1)
-};
+
 
 let { canvas, context, canvasFormat } = configureCanvas();
 
