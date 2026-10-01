@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>My Page</title>
+    <script type="text/javascript" src="../../MV.js"></script>
+    <script type="module" src="p.js"></script>
+</head>
+
+<body>
+    <button id="decrease-subdivision" type="button">-</button>
+    <span id="subdivision-level">Subdivision level: 0</span>
+    <button id="increase-subdivision" type="button">+</button>
+    <button id="toggle-orbit" type="button">Start orbit</button>
+    <fieldset>
+        <legend>Phong lighting</legend>
+        <div>
+            <label for="kd">Diffuse coefficient (kd): <output id="kd-value">1.00</output></label>
+            <input id="kd" type="range" min="0" max="1" step="0.01" value="1">
+        </div>
+        <div>
+            <label for="ks">Specular coefficient (ks): <output id="ks-value">0.50</output></label>
+            <input id="ks" type="range" min="0" max="1" step="0.01" value="0.5">
+        </div>
+        <div>
+            <label for="shininess">Shininess (s): <output id="shininess-value">32</output></label>
+            <input id="shininess" type="range" min="1" max="128" step="1" value="32">
+        </div>
+        <div>
+            <label for="Le">Light emission (Le): <output id="Le-value">1.00</output></label>
+            <input id="Le" type="range" min="0" max="2" step="0.01" value="1">
+        </div>
+        <div>
+            <label for="La">Ambient light (La): <output id="La-value">0.50</output></label>
+            <input id="La" type="range" min="0" max="2" step="0.01" value="0.5">
+        </div>
+    </fieldset>
+    <script id="wgsl" type="x-shader" src="p.wgsl"></script>
+    <canvas id="my-canvas" width="512" height="512">
+        Please use a browser that supports HTML5 canvas.
+    </canvas>
+</body>
+
+</html>

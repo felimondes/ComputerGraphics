@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>My Page</title>
+    <style>
+        .workspace {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        #my-canvas {
+            display: block;
+            max-width: 100%;
+            height: auto;
+        }
+
+        .controls {
+            width: 280px;
+            flex: 0 0 280px;
+        }
+
+        .control-row input {
+            display: block;
+            width: 100%;
+        }
+
+        @media (max-width: 820px) {
+            .workspace {
+                flex-direction: column;
+            }
+
+            .controls {
+                width: min(512px, 100%);
+                flex-basis: auto;
+            }
+        }
+    </style>
+    <script type="text/javascript" src="../../MV.js"></script>
+    <script type="module" src="p.js"></script>
+</head>
+
+<body>
+    <script id="wgsl" type="x-shader" src="p.wgsl"></script>
+    <div class="workspace">
+        <canvas id="my-canvas" width="512" height="512">
+            Please use a browser that supports HTML5 canvas.
+        </canvas>
+    </div>
+
+
+
+</body>
+
+</html>

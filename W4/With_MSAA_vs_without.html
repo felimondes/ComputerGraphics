@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>My Page</title>
+    <script type="text/javascript" src="../../MV.js"></script>
+    <script type="module" src="p.js"></script>
+
+    <style>
+        .crop {
+            width: 400px;
+            height: 400px;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .crop img {
+            width: auto;
+            height: auto;
+            position: relative;
+
+            /* Move image so its center is in the center of the crop */
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="crop">
+        <img src="image/With_MSAA_vs_without/1790408782010.png">
+    </div>
+
+    <div class="crop">
+        <img src="image/With_MSAA_vs_without/1790408810401.png">
+    </div>
+
+</body>
+
+</html>
