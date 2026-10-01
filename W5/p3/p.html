@@ -3,6 +3,7 @@
 
 <head>
     <title>My Page</title>
+
     <style>
         .workspace {
             display: flex;
@@ -37,20 +38,28 @@
             }
         }
     </style>
+
     <script type="text/javascript" src="../../MV.js"></script>
     <script type="module" src="p.js"></script>
 </head>
 
 <body>
+
     <script id="wgsl" type="x-shader" src="p.wgsl"></script>
+
     <div class="workspace">
+
         <canvas id="my-canvas" width="512" height="512">
             Please use a browser that supports HTML5 canvas.
         </canvas>
+
+        <aside class="controls">
+            <div id="subdivisions"></div>
+            <div id="orbiting"></div>
+            <div id="lighting"></div>
+        </aside>
+
     </div>
 
-
-
 </body>
-
 </html>
