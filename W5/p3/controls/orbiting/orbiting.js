@@ -1,6 +1,6 @@
 export class OrbitController {
     constructor() {
-        this.orbiting = true;
+        this.orbiting = false;
         this.cameraAngle = 0;
         this.previousFrameTime = 0;
 

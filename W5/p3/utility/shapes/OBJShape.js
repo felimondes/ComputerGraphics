@@ -45,4 +45,8 @@ export class OBJShape extends Shape {
     getBoundingRadius() {
         return this.boundingRadius;
     }
+
+    isSubdivisble() {
+        return false;
+    }
 }

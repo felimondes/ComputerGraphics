@@ -15,8 +15,9 @@ import * as uniform from "./utility/uniform.js";
 
 import { loadControlPanels } from "./controls/controls.js";
 import { OrbitController } from "./controls/orbiting/orbiting.js";
-// import { bindLightingControls } from "./controls/lighting/lighting.js";
-// import { bindSubdivisionControls } from "./controls/subdivisions/subdivisions.js";
+import { SubdivisionController } from "./controls/subdivisions/subdivisions.js";
+import { ValueSliderController } from "./controls/valueSliders/valueSliders.js";
+import { Sphere } from "./utility/shapes/sphere.js";
 await loadControlPanels();
 
 
@@ -25,38 +26,59 @@ await loadControlPanels();
 const device = await createDevice();
 let { canvas, context, canvasFormat } = configureCanvas(device);
 
-//Objects
+//Objects (make better later)
 const objShape_1 = await OBJShape.fromFile(new URL("./suzanne.obj", import.meta.url));
-const obj_1 = new RenderObject(objShape_1, vec3(0, 0, 0));
+const obj_1_1 = new RenderObject(objShape_1, vec3(0, 0, 0));
+const obj_1_2 = new RenderObject(objShape_1, vec3(0, 3, 0));
+let objects_1 = [obj_1_1, obj_1_2];
 
-obj_1.rotation = vec3(0, 0, 0);
-obj_1.velocity = vec3(0, 0, 0);
-obj_1.angularVelocity = vec3(0, 0, 0);
-let objects_1 = [obj_1];
+
+const objShape_2 = new Sphere(0);
+const obj_2_1 = new RenderObject(objShape_2, vec3(3, 0, 0));
+const obj_2_2 = new RenderObject(objShape_2, vec3(0, 0, 3));
+let objects_2 = [obj_2_1, obj_2_2];
+
+const objectLists = [
+    { objects: objects_1, shape: objShape_1 },
+    { objects: objects_2, shape: objShape_2 },
+];
+
+//Controls
+const orbit = new OrbitController();
+new SubdivisionController(objectLists, device);
+const valueSliders = new ValueSliderController();
+
+
+//Setup buffers
+for (const batch of objectLists) {
+    batch.vertexBuffer = createVertexBuffer(device, batch.shape.positions);
+    batch.instanceBuffer = createInstanceBuffer(
+        device,
+        batch.objects.map(object => object.getM())
+    );
+    batch.indexBuffer = createIndexBuffer(device, batch.shape.indices);
+}
+
 
 //Setup layouts
 let vertexBufferLayout = createVertexBufferLayout();
 let instanceBufferLayout = createInstanceBufferLayout();
 
-//Setup buffers
-let vertexBuffer = createVertexBuffer(device, objShape_1.positions);
-const instanceBuffer = createInstanceBuffer(device, objects_1.map(object => object.getM())); //gives list of model matrices
-let indexBuffer = createIndexBuffer(device, objShape_1.indices);
 
 //Prepare uniforms
-const cameraRadius = 4;
-const lightingParameters = {
-    kd: 1,
-    ks: 0.5,
-    s: 32,
-    Le: 1,
-    La: 0.5,
-};
 
-let eyePosition = vec3(0, 0, cameraRadius);
+let eyePosition = vec3(
+    valueSliders.values.eyeX,
+    valueSliders.values.eyeY,
+    valueSliders.values.eyeZ
+);
+const cameraRadius = Math.hypot(
+        valueSliders.values.eyeX,
+        valueSliders.values.eyeZ
+    );
 let up = vec3(0, 1, 0) //up = world up. Depending on convention either z or y is up. Here it is y.
-let V = lookAt(eyePosition, obj_1.center, up);
-let P = perspective(45,canvas.width / canvas.height, 0.01, 100);
+let V = lookAt(eyePosition, obj_1_1.center, up);
+let P = perspective(45, canvas.width / canvas.height, 0.01, 100);
 const uniforms = uniform.createBufferAndLayout(
     device,
     [
@@ -97,14 +119,17 @@ const pipeline = await createPipeline([vertexBufferLayout, instanceBufferLayout]
 const bindGroup = uniform.createBindGroup(device, uniforms.buffer, pipeline);
 
 
-const orbit = new OrbitController();
-
 
 
 const world = {
     min: vec3(-10, -10, -10),
-    max: vec3(5, 5, 5)
+    max: vec3(10, 10, 10)
 };
+
+
+
+
+
 animate();
 
 
@@ -127,51 +152,61 @@ function render() {
         },
     });
 
-    //Draw objects
     pass.setPipeline(pipeline);
 
     uniform.add(device, uniforms, {
         V: V,
         P: P,
-        ...lightingParameters,
+        ...valueSliders.values,
         eyePosition: eyePosition,
     });
 
     pass.setBindGroup(0, bindGroup);
-    pass.setVertexBuffer(0, vertexBuffer);
-    pass.setVertexBuffer(1, instanceBuffer);
-    pass.setIndexBuffer(indexBuffer, 'uint32');
-    pass.drawIndexed(objShape_1.indices.length, objects_1.length);
+    for (const batch of objectLists) {
+        pass.setVertexBuffer(0, batch.vertexBuffer);
+        pass.setVertexBuffer(1, batch.instanceBuffer);
+        pass.setIndexBuffer(batch.indexBuffer, 'uint32');
+        pass.drawIndexed(batch.shape.indices.length, batch.objects.length);
+    }
 
     pass.end();
     device.queue.submit([encoder.finish()]);
 }
 
 function animate(timestamp = 0) {
-    const orbitState = orbit.update(timestamp, cameraRadius);
 
+    const orbitState = orbit.update(timestamp, Math.max(cameraRadius, 0.01));
     if (orbitState) {
         eyePosition = orbitState.eyePosition;
         V = orbitState.viewMatrix;
+    } else {
+        eyePosition = vec3(
+            valueSliders.values.eyeX,
+            valueSliders.values.eyeY,
+            valueSliders.values.eyeZ
+        );
+        V = lookAt(eyePosition, vec3(0, 0, 0), up);
     }
 
+    for (const batch of objectLists) {
+        for (const object of batch.objects) {
+            object.step(world);
+        }
 
-    for (var object of objects_1) {
-        object.step(world)
+        device.queue.writeBuffer(
+            batch.instanceBuffer,
+            0,
+            new Float32Array(
+                batch.objects.flatMap(object => Array.from(flatten(object.getM())))
+            )
+        );
     }
-    device.queue.writeBuffer(
-        instanceBuffer,
-        0,
-        new Float32Array(
-            objects_1.flatMap(object => Array.from(flatten(object.getM())))
-        )
-    );
     render();
     requestAnimationFrame(animate);
 }
 
 async function createPipeline(layouts) {
-    
+
     let shaderModule = await createShaderModule("wgsl", device);
 
     const pipeline = device.createRenderPipeline({

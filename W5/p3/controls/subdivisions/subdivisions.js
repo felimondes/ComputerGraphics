@@ -1,68 +1,77 @@
-// const MIN_SUBDIVISION = 0;
-// const MAX_SUBDIVISION = 6;
+import { createIndexBuffer, createVertexBuffer } from "../../mostlyClutter/index.js";
+import { RenderObject } from "../../utility/RenderObject.js";
+import { Sphere } from "../../utility/shapes/sphere.js";
 
-// export function bindSubdivisionControls({
-//     getLevel = () => 0,
-//     setLevel = () => {},
-//     onChange = () => {},
-// } = {}) {
-//     const decreaseButton = document.getElementById("decrease-subdivision");
-//     const increaseButton = document.getElementById("increase-subdivision");
-//     const levelLabel = document.getElementById("subdivision-level");
+const MIN_SUBDIVISION = 0;
+const MAX_SUBDIVISION = 6;
 
-//     if (!decreaseButton || !increaseButton || !levelLabel) {
-//         return;
-//     }
+export class SubdivisionController {
+    constructor(objectLists, device) {
+        this.objectLists = objectLists;
+        this.device = device;
+        this.level = MIN_SUBDIVISION;
 
-//     const syncLabel = (level) => {
-//         levelLabel.textContent = `Subdivision level: ${level}`;
-//     };
+        this.decreaseButton = document.getElementById("decrease-subdivision");
+        this.increaseButton = document.getElementById("increase-subdivision");
+        this.levelLabel = document.getElementById("subdivision-level");
 
-//     const setSubdivisionLevel = (level) => {
-//         const nextLevel = Math.max(
-//             MIN_SUBDIVISION,
-//             Math.min(MAX_SUBDIVISION, level)
-//         );
+        if (!this.decreaseButton || !this.increaseButton || !this.levelLabel) {
+            throw new Error("Subdivision controls are missing from the page.");
+        }
 
-//         setLevel(nextLevel);
-//         syncLabel(nextLevel);
-//         onChange(nextLevel);
-//     };
+        this.decreaseButton.addEventListener("click", () => {
+            this.setLevel(this.level - 1);
+        });
+        this.increaseButton.addEventListener("click", () => {
+            this.setLevel(this.level + 1);
+        });
 
-//     decreaseButton.addEventListener("click", () => {
-//         setSubdivisionLevel(getLevel() - 1);
-//     });
+        this.updateLabel();
+    }
 
-//     increaseButton.addEventListener("click", () => {
-//         setSubdivisionLevel(getLevel() + 1);
-//     });
+    clampLevel(level) {
+        return Math.max(MIN_SUBDIVISION, Math.min(MAX_SUBDIVISION, level));
+    }
 
-//     syncLabel(getLevel());
-// }
+    setLevel(level) {
+        const nextLevel = this.clampLevel(level);
+        if (nextLevel === this.level) {
+            return;
+        }
+        this.level = nextLevel;
+        this.updateLabel();
+        this.onChange();
+    }
 
-// //Subdivison controls
-// const MIN_SUBDIVISION = 0;
-// const MAX_SUBDIVISION = 6;
-// let subdivisionLevel = 0;
+    onChange() {
+        for (const batch of this.objectLists) {
+            if (!batch.shape.isSubdivisble()) {
+                continue;
+            }
 
-// document.getElementById("decrease-subdivision").addEventListener("click", () => {
-//     setSubdivisionLevel(subdivisionLevel - 1);
-// });
-// document.getElementById("increase-subdivision").addEventListener("click", () => {
-//     setSubdivisionLevel(subdivisionLevel + 1);
-// });
+            const shape = new Sphere(this.level);
+            const updatedObjects = batch.objects.map((object) => {
+                const replacement = new RenderObject(shape, object.center);
+                replacement.velocity = object.velocity;
+                replacement.acceleration = object.acceleration;
+                replacement.rotation = object.rotation;
+                replacement.angularVelocity = object.angularVelocity;
+                replacement.timeStep = object.timeStep;
+                return replacement;
+            });
 
-// function setSubdivisionLevel(level) {
-//     subdivisionLevel = Math.max(
-//         MIN_SUBDIVISION,
-//         Math.min(MAX_SUBDIVISION, level)
-//     );
+            batch.objects.splice(0, batch.objects.length, ...updatedObjects);
+            batch.shape = shape;
 
-//     sphereShape = new Sphere(subdivisionLevel);
-//     vertexBuffer = createVertexBuffer(device, sphereShape.positions);
-//     indexBuffer = createIndexBuffer(device, sphereShape.indices);
-//     document.getElementById("subdivision-level").textContent =
-//         `Subdivision level: ${subdivisionLevel}`;
+            batch.vertexBuffer.destroy();
+            batch.indexBuffer.destroy();
+            batch.vertexBuffer = createVertexBuffer(this.device, shape.positions);
+            batch.indexBuffer = createIndexBuffer(this.device, shape.indices);
+        }
 
-//     render();
-// }
+    }
+
+    updateLabel() {
+        this.levelLabel.textContent = `Subdivision level: ${this.level}`;
+    }
+}

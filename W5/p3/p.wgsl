@@ -10,7 +10,7 @@ struct Uniforms {
 };
 
 const le = vec3f(0.0, 0.0, -1.0);
-const sphereDiffuseColor = vec3f(1, 1, 1);
+const sphereDiffuseColor = vec3f(1, 0.5, 0);
 const sphereSpecularColor = vec3f(1.0, 1.0, 1.0);
 
 @group(0) @binding(0)

@@ -1,0 +1,47 @@
+<fieldset>
+	<legend>Camera (requires not orbiting orbit)</legend>
+
+	<div class="control-row">
+		<label for="eyeX">Eye position X: <output data-slider-output="eyeX"></output></label>
+		<input id="eyeX" data-slider-key="eyeX" type="range" min="-20" max="20" step="0.1" value="10">
+	</div>
+
+	<div class="control-row">
+		<label for="eyeY">Eye position Y: <output data-slider-output="eyeY"></output></label>
+		<input id="eyeY" data-slider-key="eyeY" type="range" min="-20" max="20" step="0.1" value="0">
+	</div>
+
+	<div class="control-row">
+		<label for="eyeZ">Eye position Z: <output data-slider-output="eyeZ"></output></label>
+		<input id="eyeZ" data-slider-key="eyeZ" type="range" min="-20" max="20" step="0.1" value="10">
+	</div>
+</fieldset>
+
+<fieldset>
+	<legend>Lighting</legend>
+
+	<div class="control-row">
+		<label for="kd">Diffuse coefficient (kd): <output data-slider-output="kd"></output></label>
+		<input id="kd" data-slider-key="kd" type="range" min="0" max="1" step="0.01" value="1">
+	</div>
+
+	<div class="control-row">
+		<label for="ks">Specular coefficient (ks): <output data-slider-output="ks"></output></label>
+		<input id="ks" data-slider-key="ks" type="range" min="0" max="1" step="0.01" value="0.1">
+	</div>
+
+	<div class="control-row">
+		<label for="shininess">Shininess (s): <output data-slider-output="s"></output></label>
+		<input id="shininess" data-slider-key="s" type="range" min="1" max="128" step="1" value="32">
+	</div>
+
+	<div class="control-row">
+		<label for="Le">Light emission (Le): <output data-slider-output="Le"></output></label>
+		<input id="Le" data-slider-key="Le" type="range" min="0" max="2" step="0.01" value="1">
+	</div>
+
+	<div class="control-row">
+		<label for="La">Ambient light (La): <output data-slider-output="La"></output></label>
+		<input id="La" data-slider-key="La" type="range" min="0" max="2" step="0.01" value="0.5">
+	</div>
+</fieldset>

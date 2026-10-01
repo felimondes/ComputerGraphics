@@ -5,6 +5,7 @@ export class Sphere extends Shape {
     constructor(subdivisions = 5, colors = [[1, 1, 1, 1]]) {
         super();
 
+
         const tetrahedron = this.createTetrahedron();
         const mesh = loopSubdivision(
             tetrahedron.points,
@@ -12,7 +13,12 @@ export class Sphere extends Shape {
             subdivisions
         );
 
-        this.positions = mesh.positions;
+        this.points = mesh.positions;
+        this.positions = new Float32Array(
+            this.points.flatMap(position => [
+                position[0], position[1], position[2], 1,
+            ])
+        );
         this.indices = mesh.indices;
     }
 
@@ -54,5 +60,9 @@ export class Sphere extends Shape {
 
     getBoundingRadius() {
         return 1;
+    }
+
+    isSubdivisble() {
+        return true;
     }
 }

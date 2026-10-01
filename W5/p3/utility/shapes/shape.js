@@ -12,4 +12,10 @@ export class Shape {
             "getBoundingRadius must be implemented by the subclass."
         );
     }
+
+    isSubdivisble() {
+        throw new Error(
+            "isSubdivisble must be implemented by the subclass."
+        );
+    }
 }

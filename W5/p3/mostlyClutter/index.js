@@ -53,7 +53,7 @@ export function createInstanceBufferLayout() {
 
 
 export function createVertexBuffer(device, positions) {
-    const data = positions;
+    const data = flatten(positions);
 
     const vertexBuffer = device.createBuffer({
         size: Math.max(data.byteLength, 4),
