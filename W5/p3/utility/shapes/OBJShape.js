@@ -7,7 +7,7 @@ export class OBJShape extends Shape {
         this.positions = obj.vertices;
         this.indices = obj.indices;
         this.colors = obj.colors;
-        this.normals = obj.normal;
+        this.normals = obj.normals;
 
         this.boundingRadius = this.calculateBoundingRadius(
             this.positions
@@ -28,7 +28,7 @@ export class OBJShape extends Shape {
     calculateBoundingRadius(vertices) {
         let radiusSquared = 0;
 
-        for (let i = 0; i < vertices.length; i += 3) {
+        for (let i = 0; i < vertices.length; i += 4) {
             const x = vertices[i];
             const y = vertices[i + 1];
             const z = vertices[i + 2];

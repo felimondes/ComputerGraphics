@@ -10,26 +10,28 @@ struct Uniforms {
 };
 
 const le = vec3f(0.0, 0.0, -1.0);
-const sphereDiffuseColor = vec3f(1, 0.5, 0);
-const sphereSpecularColor = vec3f(1.0, 1.0, 1.0);
+const diffuseColor = vec3f(1, 0.5, 0);
+const specularColor = vec3f(1.0, 1.0, 1.0);
 
 @group(0) @binding(0)
 var<uniform> uniforms: Uniforms;
 
 struct VertexInput {
     @location(0) position: vec4f,
+    @location(1) normal: vec4f,
 
     // One mat4 occupies four vertex attributes.
-    @location(1) model0: vec4f,
-    @location(2) model1: vec4f,
-    @location(3) model2: vec4f,
-    @location(4) model3: vec4f,
+    @location(2) model0: vec4f,
+    @location(3) model1: vec4f,
+    @location(4) model2: vec4f,
+    @location(5) model3: vec4f,
 };
 
 
 struct VertexOutput {
     @builtin(position) position: vec4f,
     @location(0) normal: vec3f,
+    @location(1) worldPosition: vec3f,
 };
 
 @vertex
@@ -43,12 +45,10 @@ fn main_vs(input: VertexInput) -> VertexOutput
     );
 
     var output: VertexOutput;
-    output.position = uniforms.P
-                    * uniforms.V
-                    * model
-                    * input.position;
-
-    output.normal = (model * input.position).xyz;
+    let worldPosition = model * input.position;
+    output.position = uniforms.P * uniforms.V * worldPosition;
+    output.normal = (model * vec4f(input.normal.xyz, 0.0)).xyz;
+    output.worldPosition = worldPosition.xyz;
     return output;
 }
 
@@ -57,10 +57,10 @@ fn main_fs(input: VertexOutput) -> @location(0) vec4f
 {
     let n = normalize(input.normal);
     let wi = normalize(-le);
-    let wo = normalize(uniforms.eyePosition - input.position.xyz);
-    let kd = uniforms.kd * sphereDiffuseColor;
+    let wo = normalize(uniforms.eyePosition - input.worldPosition);
+    let kd = uniforms.kd * diffuseColor;
     let ka = kd;
-    let ks = uniforms.ks * sphereSpecularColor;
+    let ks = uniforms.ks * specularColor;
     let Li = uniforms.Le * vec3f(1.0, 1.0, 1.0);
     let La = uniforms.La * vec3f(1.0, 1.0, 1.0);
     let R = normalize(reflect(-wi, n));

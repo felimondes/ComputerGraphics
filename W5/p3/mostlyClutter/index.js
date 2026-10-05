@@ -6,31 +6,35 @@
 //     @location(2) color: vec4<f32>,
 
 // VERTEX BUFFER (changes for each vertex)
-// ┌────────────┬────────────┬────────────┐
-// │ position   │ normal     │ color      │
-// │ 12 bytes   │ 12 bytes   │ 16 bytes   │....
-// └────────────┴────────────┴────────────┘
+// ┌────────────┬────────────┐
+// │ position   │ normal     │
+// │ 16 bytes   │ 16 bytes   │
+// └────────────┴────────────┘
 export function createVertexBufferLayout() {
-    const vertexBufferLayout = {
-        arrayStride: 16,
+    return {
+        arrayStride: 32,
         attributes: [
             {
                 format: "float32x4",
                 offset: 0,
                 shaderLocation: 0,
             },
+            {
+                format: "float32x4",
+                offset: 16,
+                shaderLocation: 1,
+            },
         ]
     };
-    return vertexBufferLayout;
 }
 
 
 // struct VertexInput {
 //     ....
-//     @location(3) model0: vec4f,
-//     @location(4) model1: vec4f,
-//     @location(5) model2: vec4f,
-//     @location(6) model3: vec4f,
+//     @location(2) model0: vec4f,
+//     @location(3) model1: vec4f,
+//     @location(4) model2: vec4f,
+//     @location(5) model3: vec4f,
 //
 // INSTANCE BUFFER (changes for each instance)
 // ┌────────────┬────────────┬────────────┬────────────┐
@@ -43,17 +47,27 @@ export function createInstanceBufferLayout() {
         arrayStride: 64,
         stepMode: 'instance', //IMPORTANT - ONLY WORKS PER INSTANCE, so for each object that is rendered. 
         attributes: [
-            { format: 'float32x4', offset: 0, shaderLocation: 1 }, //first vector in model matrix
-            { format: 'float32x4', offset: 16, shaderLocation: 2 }, //second ...
-            { format: 'float32x4', offset: 32, shaderLocation: 3 }, //...
-            { format: 'float32x4', offset: 48, shaderLocation: 4 },
+            { format: 'float32x4', offset: 0, shaderLocation: 2 }, //first vector in model matrix
+            { format: 'float32x4', offset: 16, shaderLocation: 3 }, //second ...
+            { format: 'float32x4', offset: 32, shaderLocation: 4 }, //...
+            { format: 'float32x4', offset: 48, shaderLocation: 5 },
         ],
     };
 }
 
 
-export function createVertexBuffer(device, positions) {
-    const data = flatten(positions);
+export function createVertexBuffer(device, positions, normals) {
+    if (positions.length % 4 !== 0 || normals.length !== positions.length) {
+        throw new Error("Vertex positions and normals must contain matching vec4 data.");
+    }
+
+    const data = new Float32Array(positions.length + normals.length);
+    for (let vertex = 0; vertex < positions.length / 4; vertex++) {
+        const vertexOffset = vertex * 8;
+        const attributeOffset = vertex * 4;
+        data.set(positions.subarray(attributeOffset, attributeOffset + 4), vertexOffset);
+        data.set(normals.subarray(attributeOffset, attributeOffset + 4), vertexOffset + 4);
+    }
 
     const vertexBuffer = device.createBuffer({
         size: Math.max(data.byteLength, 4),

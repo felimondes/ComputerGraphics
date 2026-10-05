@@ -19,6 +19,11 @@ export class Sphere extends Shape {
                 position[0], position[1], position[2], 1,
             ])
         );
+        this.normals = new Float32Array(
+            this.createNormals(this.points).flatMap(normal => [
+                normal[0], normal[1], normal[2], 0,
+            ])
+        );
         this.indices = mesh.indices;
     }
 

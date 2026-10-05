@@ -65,7 +65,11 @@ export class SubdivisionController {
 
             batch.vertexBuffer.destroy();
             batch.indexBuffer.destroy();
-            batch.vertexBuffer = createVertexBuffer(this.device, shape.positions);
+            batch.vertexBuffer = createVertexBuffer(
+                this.device,
+                shape.positions,
+                shape.normals
+            );
             batch.indexBuffer = createIndexBuffer(this.device, shape.indices);
         }
 

@@ -28,15 +28,13 @@ let { canvas, context, canvasFormat } = configureCanvas(device);
 
 //Objects (make better later)
 const objShape_1 = await OBJShape.fromFile(new URL("./suzanne.obj", import.meta.url));
-const obj_1_1 = new RenderObject(objShape_1, vec3(0, 0, 0));
-const obj_1_2 = new RenderObject(objShape_1, vec3(0, 3, 0));
-let objects_1 = [obj_1_1, obj_1_2];
+const obj_1_1 = new RenderObject(objShape_1, vec3(3, 0, 0));
+let objects_1 = [obj_1_1];
 
 
 const objShape_2 = new Sphere(0);
-const obj_2_1 = new RenderObject(objShape_2, vec3(3, 0, 0));
-const obj_2_2 = new RenderObject(objShape_2, vec3(0, 0, 3));
-let objects_2 = [obj_2_1, obj_2_2];
+const obj_2_1 = new RenderObject(objShape_2, vec3(0, 0, 0));
+let objects_2 = [obj_2_1];
 
 const objectLists = [
     { objects: objects_1, shape: objShape_1 },
@@ -51,7 +49,7 @@ const valueSliders = new ValueSliderController();
 
 //Setup buffers
 for (const batch of objectLists) {
-    batch.vertexBuffer = createVertexBuffer(device, batch.shape.positions);
+    batch.vertexBuffer = createVertexBuffer(device, batch.shape.positions, batch.shape.normals);
     batch.instanceBuffer = createInstanceBuffer(
         device,
         batch.objects.map(object => object.getM())
@@ -118,20 +116,12 @@ const TOPOLOGY = "triangle-list"; //Vertices interpreted as triangles
 const pipeline = await createPipeline([vertexBufferLayout, instanceBufferLayout]);
 const bindGroup = uniform.createBindGroup(device, uniforms.buffer, pipeline);
 
-
-
-
 const world = {
     min: vec3(-10, -10, -10),
     max: vec3(10, 10, 10)
 };
 
-
-
-
-
 animate();
-
 
 //Render
 function render() {

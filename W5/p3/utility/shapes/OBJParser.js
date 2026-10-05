@@ -303,15 +303,14 @@ OBJDoc.prototype.findColor = function (name) {
 // Retrieve the information for drawing 3D model
 OBJDoc.prototype.getDrawingInfo = function () {
   // Create an arrays for vertex coordinates, normals, colors, and indices
-  var numVertices = 0;
   var numIndices = 0;
   for (var i = 0; i < this.objects.length; i++) {
     numIndices += this.objects[i].numIndices;
   }
-  var numVertices = this.vertices.length;
-  var vertices = new Float32Array(numVertices * 4);
-  var normals = new Float32Array(numVertices * 4);
-  var colors = new Float32Array(numVertices * 4);
+  // Expand each face corner so OBJ position/normal index pairs stay intact.
+  var vertices = new Float32Array(numIndices * 4);
+  var normals = new Float32Array(numIndices * 4);
+  var colors = new Float32Array(numIndices * 4);
   var indices = new Uint32Array(numIndices);
 
   // Set vertex, normal and color
@@ -325,31 +324,32 @@ OBJDoc.prototype.getDrawingInfo = function () {
       for (var k = 0; k < face.vIndices.length; k++) {
         // Set index
         var vIdx = face.vIndices[k];
-        indices[index_indices] = vIdx;
+        indices[index_indices] = index_indices;
+        var outputVertex = index_indices;
         // Copy vertex
         var vertex = this.vertices[vIdx];
-        vertices[vIdx * 4 + 0] = vertex.x;
-        vertices[vIdx * 4 + 1] = vertex.y;
-        vertices[vIdx * 4 + 2] = vertex.z;
-        vertices[vIdx * 4 + 3] = 1.0;
+        vertices[outputVertex * 4 + 0] = vertex.x;
+        vertices[outputVertex * 4 + 1] = vertex.y;
+        vertices[outputVertex * 4 + 2] = vertex.z;
+        vertices[outputVertex * 4 + 3] = 1.0;
         // Copy color
-        colors[vIdx * 4 + 0] = color.r;
-        colors[vIdx * 4 + 1] = color.g;
-        colors[vIdx * 4 + 2] = color.b;
-        colors[vIdx * 4 + 3] = color.a;
+        colors[outputVertex * 4 + 0] = color.r;
+        colors[outputVertex * 4 + 1] = color.g;
+        colors[outputVertex * 4 + 2] = color.b;
+        colors[outputVertex * 4 + 3] = color.a;
         // Copy normal
         var nIdx = face.nIndices[k];
         if (nIdx >= 0) {
           var normal = this.normals[nIdx];
-          normals[vIdx * 4 + 0] = normal.x;
-          normals[vIdx * 4 + 1] = normal.y;
-          normals[vIdx * 4 + 2] = normal.z;
-          normals[vIdx * 4 + 3] = 0.0;
+          normals[outputVertex * 4 + 0] = normal.x;
+          normals[outputVertex * 4 + 1] = normal.y;
+          normals[outputVertex * 4 + 2] = normal.z;
+          normals[outputVertex * 4 + 3] = 0.0;
         } else {
-          normals[vIdx * 4 + 0] = faceNormal.x;
-          normals[vIdx * 4 + 1] = faceNormal.y;
-          normals[vIdx * 4 + 2] = faceNormal.z;
-          normals[vIdx * 4 + 3] = 0.0;
+          normals[outputVertex * 4 + 0] = faceNormal.x;
+          normals[outputVertex * 4 + 1] = faceNormal.y;
+          normals[outputVertex * 4 + 2] = faceNormal.z;
+          normals[outputVertex * 4 + 3] = 0.0;
         }
         index_indices++;
       }
