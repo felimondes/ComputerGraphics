@@ -1,0 +1,25 @@
+export class Shape {
+    constructor() {
+        if (new.target === Shape) {
+            throw new Error(
+                "Shape is an abstract class and cannot be instantiated directly."
+            );
+        }
+    }
+
+    subdivide(level) {
+        return new this.constructor(level);
+    }
+
+    getBoundingRadius() {
+        throw new Error(
+            "getBoundingRadius must be implemented by the subclass."
+        );
+    }
+
+    isSubdivisble() {
+        throw new Error(
+            "isSubdivisble must be implemented by the subclass."
+        );
+    }
+}
