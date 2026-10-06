@@ -28,12 +28,12 @@ let { canvas, context, canvasFormat } = configureCanvas(device);
 
 //Objects (make better later)
 const objShape_1 = await OBJShape.fromFile(new URL("./suzanne.obj", import.meta.url));
-const obj_1_1 = new RenderObject(objShape_1, vec3(3, 0, 0));
+const obj_1_1 = new RenderObject(objShape_1, vec3(0, 0, 0));
 let objects_1 = [obj_1_1];
 
 
 const objShape_2 = new Sphere(0);
-const obj_2_1 = new RenderObject(objShape_2, vec3(0, 0, 0));
+const obj_2_1 = new RenderObject(objShape_2, vec3(3, 0, 0));
 let objects_2 = [obj_2_1];
 
 const objectLists = [
@@ -71,11 +71,11 @@ let eyePosition = vec3(
     valueSliders.values.eyeZ
 );
 const cameraRadius = Math.hypot(
-        valueSliders.values.eyeX,
-        valueSliders.values.eyeZ
-    );
+    valueSliders.values.eyeX,
+    valueSliders.values.eyeZ
+);
 let up = vec3(0, 1, 0) //up = world up. Depending on convention either z or y is up. Here it is y.
-let V = lookAt(eyePosition, obj_1_1.center, up);
+let V = lookAt(eyePosition, (obj_1_1.center), up);
 let P = perspective(45, canvas.width / canvas.height, 0.01, 100);
 const uniforms = uniform.createBufferAndLayout(
     device,
@@ -170,12 +170,27 @@ function animate(timestamp = 0) {
         eyePosition = orbitState.eyePosition;
         V = orbitState.viewMatrix;
     } else {
-        eyePosition = vec3(
+        const nextEyePosition = vec3(
             valueSliders.values.eyeX,
             valueSliders.values.eyeY,
             valueSliders.values.eyeZ
         );
-        V = lookAt(eyePosition, vec3(0, 0, 0), up);
+
+        try {
+            const nextViewMatrix = lookAt(
+                nextEyePosition,
+                vec3(0, 0, 0),
+                up
+            );
+            if (!nextViewMatrix.flat().every(Number.isFinite)) {
+                throw new Error("lookAt produced an invalid view matrix.");
+            }
+
+            eyePosition = nextEyePosition;
+            V = nextViewMatrix;
+        } catch (error) {
+            console.error("lookAt failed; keeping the previous camera view:", error);
+        }
     }
 
     for (const batch of objectLists) {

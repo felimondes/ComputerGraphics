@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Course notes</title>
+    <style>
+        :root {
+            color-scheme: light;
+            font-family: "Segoe UI", sans-serif;
+            color: #182436;
+            background: #fff;
+        }
+
+        body {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 24px clamp(16px, 4vw, 40px) 48px;
+            line-height: 1.65;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4 {
+            line-height: 1.25;
+        }
+
+        h1 {
+            margin-bottom: 24px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #d5dde7;
+        }
+
+        h2,
+        h3,
+        h4 {
+            margin-top: 1.6em;
+        }
+
+        p,
+        ol,
+        ul {
+            margin: 0 0 1em;
+        }
+
+        code,
+        pre {
+            font-family: Consolas, "Courier New", monospace;
+        }
+
+        code {
+            padding: 0.12em 0.35em;
+            border-radius: 4px;
+            background: #edf2f7;
+        }
+
+        pre.math {
+            overflow-x: auto;
+            padding: 14px 16px;
+            border-radius: 6px;
+            background: #f1f5f9;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+
+        .error {
+            padding: 14px;
+            border-left: 4px solid #b42318;
+            background: #fef3f2;
+            color: #7a271a;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <h1 id="document-title">Course notes</h1>
+        <article id="document-content" aria-live="polite">Loading notes…</article>
+    </main>
+    <script>
+        const documents = {
+            "W3/p3/reflections.md": "Week 3 — Affine and Viewing Transformations",
+            "W4/p6/reflections.md": "Week 4 — Shading and Lighting Reflections",
+            "W5/p4.md": "Week 5 — Surface Normals and Mesh Smoothness",
+        };
+
+        function escapeHtml(text) {
+            return text.replace(/[&<>"']/g, character => ({
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#39;",
+            })[character]);
+        }
+
+        function renderInline(text) {
+            return escapeHtml(text)
+                .replace(/`([^`]+)`/g, "<code>$1</code>")
+                .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+                .replace(/\*(.+?)\*/g, "<em>$1</em>");
+        }
+
+        function renderMarkdown(markdown) {
+            const lines = markdown.replace(/\r\n?/g, "\n").split("\n");
+            const html = [];
+            let paragraph = [];
+            let listType = "";
+            let math = [];
+            let inMath = false;
+
+            function flushParagraph() {
+                if (paragraph.length) {
+                    html.push(`<p>${renderInline(paragraph.join(" "))}</p>`);
+                    paragraph = [];
+                }
+            }
+
+            function closeList() {
+                if (listType) {
+                    html.push(`</${listType}>`);
+                    listType = "";
+                }
+            }
+
+            for (const line of lines) {
+                const trimmed = line.trim();
+
+                if (inMath) {
+                    if (trimmed === "$$") {
+                        html.push(`<pre class="math">${escapeHtml(math.join("\n"))}</pre>`);
+                        math = [];
+                        inMath = false;
+                    } else {
+                        math.push(line);
+                    }
+                    continue;
+                }
+
+                if (trimmed === "$$") {
+                    flushParagraph();
+                    closeList();
+                    inMath = true;
+                    continue;
+                }
+
+                if (!trimmed) {
+                    flushParagraph();
+                    closeList();
+                    continue;
+                }
+
+                const heading = /^(#{1,6})\s+(.+)$/.exec(trimmed);
+                if (heading) {
+                    flushParagraph();
+                    closeList();
+                    const level = heading[1].length;
+                    html.push(`<h${level}>${renderInline(heading[2])}</h${level}>`);
+                    continue;
+                }
+
+                const listItem = /^(\d+\.|[-*+])\s+(.+)$/.exec(trimmed);
+                if (listItem) {
+                    flushParagraph();
+                    const nextListType = /^\d/.test(listItem[1]) ? "ol" : "ul";
+                    if (listType !== nextListType) {
+                        closeList();
+                        listType = nextListType;
+                        html.push(`<${listType}>`);
+                    }
+                    html.push(`<li>${renderInline(listItem[2])}</li>`);
+                    continue;
+                }
+
+                closeList();
+                paragraph.push(trimmed);
+            }
+
+            flushParagraph();
+            closeList();
+            if (inMath) {
+                html.push(`<pre class="math">${escapeHtml(math.join("\n"))}</pre>`);
+            }
+            return html.join("\n");
+        }
+
+        async function loadDocument() {
+            const file = new URLSearchParams(window.location.search).get("file");
+            const title = documents[file];
+            const titleElement = document.getElementById("document-title");
+            const contentElement = document.getElementById("document-content");
+
+            if (!title) {
+                titleElement.textContent = "Notes unavailable";
+                contentElement.className = "error";
+                contentElement.textContent = "This notes page is not available.";
+                return;
+            }
+
+            titleElement.textContent = title;
+            document.title = title;
+
+            try {
+                const response = await fetch(file);
+                if (!response.ok) {
+                    throw new Error(`Could not load notes (${response.status}).`);
+                }
+                contentElement.innerHTML = renderMarkdown(await response.text());
+            } catch (error) {
+                contentElement.className = "error";
+                contentElement.textContent = `Unable to load the notes. ${error.message}`;
+            }
+        }
+
+        loadDocument();
+    </script>
+</body>
+</html>
