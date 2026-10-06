@@ -55,14 +55,19 @@
             background: #edf2f7;
         }
 
-        pre.math {
+        .math-display {
+            display: block;
             overflow-x: auto;
+            margin: 1.25em 0;
             padding: 14px 16px;
             border-radius: 6px;
             background: #f1f5f9;
-            line-height: 1.5;
-            white-space: pre-wrap;
-            overflow-wrap: anywhere;
+            text-align: center;
+            font-size: 1.15rem;
+        }
+
+        .math-display math {
+            min-width: max-content;
         }
 
         .error {
@@ -102,6 +107,158 @@
                 .replace(/\*(.+?)\*/g, "<em>$1</em>");
         }
 
+        function renderTex(expression) {
+            const tokens = expression.match(/\\\\|\\[a-zA-Z]+|[{}_^&]|[A-Za-z]+|\d+(?:\.\d+)?|[^\s]/g) || [];
+            const greek = {
+                alpha: "α",
+                theta: "θ",
+                cot: "cot",
+                cos: "cos",
+                sin: "sin",
+            };
+            let position = 0;
+
+            function tokenText(token) {
+                return token.startsWith("\\") ? (greek[token.slice(1)] || token.slice(1)) : token;
+            }
+
+            function readGroupText() {
+                if (tokens[position] !== "{") {
+                    throw new Error("Expected a braced math argument.");
+                }
+                position++;
+                let depth = 1;
+                const value = [];
+                while (position < tokens.length && depth > 0) {
+                    const token = tokens[position++];
+                    if (token === "{") {
+                        depth++;
+                        if (depth > 1) value.push(token);
+                    } else if (token === "}") {
+                        depth--;
+                        if (depth > 0) value.push(token);
+                    } else {
+                        value.push(tokenText(token));
+                    }
+                }
+                if (depth !== 0) {
+                    throw new Error("Unclosed braced math argument.");
+                }
+                return value.join("");
+            }
+
+            function parseGroup() {
+                if (tokens[position] !== "{") {
+                    return parseAtom();
+                }
+                position++;
+                const content = parseSequence(new Set(["}"]));
+                if (tokens[position] !== "}") {
+                    throw new Error("Unclosed math group.");
+                }
+                position++;
+                return `<mrow>${content}</mrow>`;
+            }
+
+            function parseMatrix() {
+                const rows = [];
+                let cells = [];
+                while (position < tokens.length) {
+                    if (tokens[position] === "\\end") {
+                        position++;
+                        const environment = readGroupText();
+                        if (environment !== "bmatrix") {
+                            throw new Error(`Unsupported matrix environment: ${environment}`);
+                        }
+                        rows.push(cells);
+                        return `<mrow><mo>[</mo><mtable columnalign="center">${rows
+                            .map(row => `<mtr>${row.join("")}</mtr>`)
+                            .join("")}</mtable><mo>]</mo></mrow>`;
+                    }
+
+                    const cell = parseSequence(new Set(["&", "\\\\", "\\end"]));
+                    cells.push(`<mtd>${cell}</mtd>`);
+                    if (tokens[position] === "&") {
+                        position++;
+                    } else if (tokens[position] === "\\\\") {
+                        position++;
+                        rows.push(cells);
+                        cells = [];
+                    } else if (tokens[position] !== "\\end") {
+                        throw new Error("Unclosed math matrix.");
+                    }
+                }
+                throw new Error("Unclosed math matrix.");
+            }
+
+            function parseAtom() {
+                const token = tokens[position++];
+                if (token === undefined) {
+                    return "";
+                }
+                if (token === "{") {
+                    position--;
+                    return parseGroup();
+                }
+                if (token === "\\begin") {
+                    const environment = readGroupText();
+                    if (environment === "bmatrix") {
+                        return parseMatrix();
+                    }
+                    throw new Error(`Unsupported math environment: ${environment}`);
+                }
+                if (token === "\\frac") {
+                    return `<mfrac>${parseGroup()}${parseGroup()}</mfrac>`;
+                }
+                if (token === "\\operatorname" || token === "\\text") {
+                    return `<mtext>${escapeHtml(readGroupText())}</mtext>`;
+                }
+                if (token.startsWith("\\")) {
+                    const symbol = greek[token.slice(1)];
+                    return symbol
+                        ? `<mi${["cot", "cos", "sin"].includes(symbol) ? ' mathvariant="normal"' : ""}>${symbol}</mi>`
+                        : `<mo>${escapeHtml(token.slice(1))}</mo>`;
+                }
+                if (/^[A-Za-z]+$/.test(token)) {
+                    return `<mi>${escapeHtml(token)}</mi>`;
+                }
+                if (/^\d+(?:\.\d+)?$/.test(token)) {
+                    return `<mn>${token}</mn>`;
+                }
+                const stretchy = token === "(" || token === ")" ? ' stretchy="false"' : "";
+                return `<mo${stretchy}>${escapeHtml(token)}</mo>`;
+            }
+
+            function parseSequence(stops = new Set()) {
+                const nodes = [];
+                while (position < tokens.length && !stops.has(tokens[position])) {
+                    let base = parseAtom();
+                    let subscript = "";
+                    let superscript = "";
+                    while (tokens[position] === "_" || tokens[position] === "^") {
+                        const script = tokens[position++];
+                        const value = parseGroup();
+                        if (script === "_") {
+                            subscript = value;
+                        } else {
+                            superscript = value;
+                        }
+                    }
+                    if (subscript && superscript) {
+                        base = `<msubsup>${base}${subscript}${superscript}</msubsup>`;
+                    } else if (subscript) {
+                        base = `<msub>${base}${subscript}</msub>`;
+                    } else if (superscript) {
+                        base = `<msup>${base}${superscript}</msup>`;
+                    }
+                    nodes.push(base);
+                }
+                return nodes.join("");
+            }
+
+            return `<math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow>${parseSequence()}</mrow></math>`;
+        }
+
         function renderMarkdown(markdown) {
             const lines = markdown.replace(/\r\n?/g, "\n").split("\n");
             const html = [];
@@ -129,7 +286,8 @@
 
                 if (inMath) {
                     if (trimmed === "$$") {
-                        html.push(`<pre class="math">${escapeHtml(math.join("\n"))}</pre>`);
+                        const expression = math.join("\n");
+                        html.push(`<div class="math-display" role="math" aria-label="${escapeHtml(expression)}">${renderTex(expression)}</div>`);
                         math = [];
                         inMath = false;
                     } else {
