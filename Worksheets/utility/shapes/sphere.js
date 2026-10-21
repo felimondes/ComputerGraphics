@@ -12,19 +12,36 @@ export class Sphere extends Shape {
             tetrahedron.indices,
             subdivisions
         );
+        
+        this.mesh = mesh;
+        this.colorPalette = colors;
+        
+        this._points = this.createPoints(mesh.positions);
+        this._positions = this.createPositions();
+        this._normals = this.createNormals();
+        this._indices = this.createIndices();
+        this._colors = this.createColors();
+    }
 
-        this.points = mesh.positions;
-        this.positions = new Float32Array(
-            this.points.flatMap(position => [
+    
+    createPoints(position) {
+        return (
+            position.flatMap(point => [
+                vec4(point[0], point[1], point[2], 1),
+            ])
+        );
+    }
+
+    createPositions() {
+        return new Float32Array(
+            this._points.flatMap(position => [
                 position[0], position[1], position[2], 1,
             ])
         );
-        this.normals = new Float32Array(
-            this.createNormals(this.points).flatMap(normal => [
-                normal[0], normal[1], normal[2], 0,
-            ])
-        );
-        this.indices = mesh.indices;
+    }
+
+    createIndices() {
+        return this.mesh.indices;
     }
 
     createTetrahedron() {
@@ -44,23 +61,32 @@ export class Sphere extends Shape {
         };
     }
 
-    createNormals(positions) {
-        return positions.map(position => {
+    createNormals() {
+        return new Float32Array(
+            this._points.flatMap(position => {
             const length = Math.hypot(position[0], position[1], position[2]) || 1;
-            return vec3(
-                position[0] / length,
-                position[1] / length,
-                position[2] / length
-            );
-        });
+                return [
+                    position[0] / length,
+                    position[1] / length,
+                    position[2] / length,
+                    0,
+                ];
+            })
+        );
     }
 
-    createColors(positions, colors) {
-        const colorList = colors.length ? colors : [[1, 1, 1, 1]];
-        return positions.map((_, index) => {
+    createColors() {
+        const colorList = this.colorPalette.length
+            ? this.colorPalette
+            : [[1, 1, 1, 1]];
+        return this._points.map((_, index) => {
             const c = colorList[index % colorList.length];
             return vec4(c[0], c[1], c[2], c[3] ?? 1);
         });
+    }
+
+    getCenter() {
+        return this.getCenterFromPositions();
     }
 
     getBoundingRadius() {

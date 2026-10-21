@@ -78,7 +78,7 @@ export function createVertexBuffer(device, positions, normals) {
     return vertexBuffer;
 }
 
-
+//instance buffer is used when u want to do something pr. instance instead of pr. vertex like the vertex buffers. U have to call pass.draw(vertexCount, 100);
 export function createInstanceBuffer(device, modelMatrices) {
     const data = new Float32Array(
         modelMatrices.flatMap(model => Array.from(flatten(model)))
@@ -116,6 +116,15 @@ export async function createShaderModule(name, device) {
     });
 }
 
+export function createBindGroup(device, uniformBuffer, pipeline) {
+    return device.createBindGroup({
+        layout: pipeline.getBindGroupLayout(0),
+        entries: [{
+            binding: 0,
+            resource: { buffer: uniformBuffer }
+        }],
+    });
+}
 
 export async function createDevice() {
     const gpu = navigator.gpu;
@@ -138,3 +147,5 @@ export function configureCanvas(device) {
         canvasFormat
     }
 }
+
+

@@ -1,5 +1,5 @@
 export class RenderObject {
-    constructor(shape, center) {
+    constructor(shape, center = vec3(0,0,0)) {
         this.shape = shape;
         this.center = center;
         this.timeStep = 1 / 60; //TODO change to not scale with FPS, but real time passed

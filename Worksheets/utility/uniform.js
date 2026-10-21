@@ -73,16 +73,6 @@ export function add(device, uniform, values) {
     );
 }
 
-export function createBindGroup(device, uniformBuffer, pipeline) {
-    return device.createBindGroup({
-        layout: pipeline.getBindGroupLayout(0),
-        entries: [{
-            binding: 0,
-            resource: { buffer: uniformBuffer }
-        }],
-    });
-}
-
 //Return items in the buffer (name, type, their offset) + total space needed
 function calculateUniformLayout(layout) {
     let offset = 0;

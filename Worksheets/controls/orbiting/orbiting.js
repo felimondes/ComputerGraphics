@@ -8,6 +8,10 @@ export class OrbitController {
 
         this.button.addEventListener("click", () => {
             this.orbiting = !this.orbiting;
+            if (this.orbiting) {
+                this.cameraAngle = 0;
+                this.previousFrameTime = 0;
+            }
 
             this.button.textContent = this.orbiting
                 ? "Stop orbit"
@@ -15,7 +19,8 @@ export class OrbitController {
         });
     }
 
-    update(timestamp, cameraRadius) {
+    update(timestamp, values) {
+
         const deltaTime =
             this.previousFrameTime === 0
                 ? 0
@@ -29,10 +34,12 @@ export class OrbitController {
 
         this.cameraAngle += deltaTime;
 
+        const cosAngle = Math.cos(this.cameraAngle);
+        const sinAngle = Math.sin(this.cameraAngle);
         const eyePosition = vec3(
-            cameraRadius * Math.sin(this.cameraAngle),
-            0,
-            cameraRadius * Math.cos(this.cameraAngle)
+            values.eyeX * cosAngle + values.eyeZ * sinAngle,
+            values.eyeY,
+            -values.eyeX * sinAngle + values.eyeZ * cosAngle
         );
 
         const viewMatrix = lookAt(

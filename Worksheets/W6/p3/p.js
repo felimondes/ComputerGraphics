@@ -1,0 +1,316 @@
+import { RenderObject } from "../../utility/RenderObject.js";
+import * as uniform from "../../utility/uniform.js";
+import {
+    configureCanvas,
+    createDevice,
+    createIndexBuffer,
+    createInstanceBuffer,
+    createInstanceBufferLayout,
+    createShaderModule,
+    createVertexBuffer,
+    createVertexBufferLayout
+} from "./mostlyClutter/index.js";
+
+import { loadControlPanels } from "../../controls/controls.js";
+import { OrbitController } from "../../controls/orbiting/orbiting.js";
+import { SubdivisionController } from "../../controls/subdivisions/subdivisions.js";
+import { ValueSliderController } from "../../controls/valueSliders/valueSliders.js";
+import { Sphere } from "../../utility/shapes/sphere.js";
+import { generateMipmap, numMipLevels } from "./genmipmap.js";
+await loadControlPanels();
+
+
+
+//Connect to GPU
+const device = await createDevice();
+let { canvas, context, canvasFormat } = configureCanvas(device);
+
+const objShape_2 = new Sphere(0);
+const obj_2_1 = new RenderObject(objShape_2, vec3(0, 0, 0));
+let objects_2 = [obj_2_1];
+
+const objectLists = [
+    { objects: objects_2, shape: objShape_2 }
+];
+
+//Controls
+const orbitController = new OrbitController();
+const valueSlidersController = new ValueSliderController();
+new SubdivisionController(objectLists, device)
+
+
+//Setup buffers
+for (const batch of objectLists) {
+    batch.vertexBuffer = createVertexBuffer(
+        device,
+        batch.shape.getPositions(),
+        batch.shape.getNormals()
+    );
+    batch.instanceBuffer = createInstanceBuffer(device, batch.objects.map(object => object.getM()));
+    batch.indexBuffer = createIndexBuffer(device, batch.shape.getIndices());
+}
+
+
+//Setup layouts
+let vertexBufferLayout = createVertexBufferLayout();
+let instanceBufferLayout = createInstanceBufferLayout();
+
+
+
+//Texture
+const response = await fetch("earth.jpg");
+const blob = await response.blob();
+const img = await createImageBitmap(blob, { colorSpaceConversion: 'none' });
+
+const wrapModeControl = document.getElementById("wrap-mode");
+const minFilterControl = document.getElementById("min-filter");
+const magFilterControl = document.getElementById("mag-filter");
+const mipmapFilterControl = document.getElementById("mipmap-filter");
+const mipmapEnabledControl = document.getElementById("mipmap-enabled")
+
+let texture;
+let bindGroup;
+
+function updateTextureSettings() {
+    //mipmap
+
+    var myTexture = device.createTexture({
+        size: [img.width, img.height, 1],
+        format: "rgba8unorm",
+        mipLevelCount: mipmapEnabledControl.checked ? numMipLevels(img.width, img.height) : 1,
+        usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT
+    });
+    device.queue.copyExternalImageToTexture(
+        { source: img, flipY: true },
+        { texture: myTexture },
+        { width: img.width, height: img.height },
+    );
+
+    if (mipmapEnabledControl.checked)
+        generateMipmap(device, myTexture);
+
+    const sampler = device.createSampler({
+        addressModeU: wrapModeControl.value,
+        addressModeV: wrapModeControl.value,
+        minFilter: minFilterControl.value,
+        magFilter: magFilterControl.value,
+        mipmapFilter: mipmapFilterControl.value,
+    });
+
+
+    bindGroup = device.createBindGroup({
+        layout: pipeline.getBindGroupLayout(0),
+        entries: [
+            { binding: 0, resource: uniforms.buffer },
+            { binding: 1, resource: sampler },
+            { binding: 2, resource: myTexture.createView() },
+        ],
+    });
+
+    render();
+    texture?.destroy();
+    texture = myTexture;
+}
+
+
+//Prepare uniforms
+let eyePosition = vec3(
+    valueSlidersController.values.eyeX,
+    valueSlidersController.values.eyeY,
+    valueSlidersController.values.eyeZ
+);
+const cameraRadius = Math.hypot(
+    valueSlidersController.values.eyeX,
+    valueSlidersController.values.eyeZ
+);
+let up = vec3(0, 1, 0) //up = world up. Depending on convention either z or y is up. Here it is y.
+let V = lookAt(eyePosition, (vec3(0, 0, 0)), up);
+let P = perspective(45, canvas.width / canvas.height, 0.01, 100);
+const uniforms = uniform.createBufferAndLayout(
+    device,
+    [
+        { name: "V", type: "mat4" },
+        { name: "P", type: "mat4" },
+        { name: "kd", type: "f32" },
+        { name: "ks", type: "f32" },
+        { name: "s", type: "f32" },
+        { name: "Le", type: "f32" },
+        { name: "La", type: "f32" },
+        { name: "eyePosition", type: "vec3" },
+    ]
+);
+
+
+//MSAA
+const SAMPLE_COUNT = 4; //MultiSample anti aliasing MSAA (Make stairs more smooth)
+const msaaTexture = device.createTexture({
+    size: { width: canvas.width, height: canvas.height },
+    format: canvasFormat,
+    sampleCount: SAMPLE_COUNT,
+    usage: GPUTextureUsage.RENDER_ATTACHMENT,
+});
+
+//Depth handling
+const depthTexture = device.createTexture({
+    size: { width: canvas.width, height: canvas.height },
+    format: 'depth24plus',
+    sampleCount: SAMPLE_COUNT,
+    usage: GPUTextureUsage.RENDER_ATTACHMENT,
+});
+
+
+//Pipeline
+const TOPOLOGY = "triangle-list"; //Vertices interpreted as triangles
+
+const pipeline = await createPipeline([vertexBufferLayout, instanceBufferLayout]);
+
+
+
+// createBindGroup(device, uniforms.buffer, pipeline);
+
+
+const world = {
+    min: vec3(-10, -10, -10),
+    max: vec3(10, 10, 10)
+};
+
+let wasOrbiting = false;
+
+//Render
+function render() {
+    const encoder = device.createCommandEncoder();
+    const pass = encoder.beginRenderPass({
+        colorAttachments: [{
+            view: msaaTexture.createView(),
+            resolveTarget: context.getCurrentTexture().createView(),
+            loadOp: 'clear',
+            storeOp: 'store',
+            clearValue: { r: 0, g: 0, b: 0, a: 0.0 },
+        }],
+        depthStencilAttachment: {
+            view: depthTexture.createView(),
+            depthLoadOp: 'clear',
+            depthClearValue: 1.0,
+            depthStoreOp: 'store',
+        },
+    });
+
+    pass.setPipeline(pipeline);
+
+    uniform.add(device, uniforms, {
+        V: V,
+        P: P,
+        ...valueSlidersController.values,
+        eyePosition: eyePosition,
+    });
+
+    pass.setBindGroup(0, bindGroup);
+    for (const batch of objectLists) {
+        pass.setVertexBuffer(0, batch.vertexBuffer);
+        pass.setVertexBuffer(1, batch.instanceBuffer);
+        pass.setIndexBuffer(batch.indexBuffer, 'uint32');
+        pass.drawIndexed(batch.shape.getIndices().length, batch.objects.length);
+    }
+
+    pass.end();
+    device.queue.submit([encoder.finish()]);
+}
+
+function animate(timestamp = 0) {
+
+    const orbitState = orbitController.update(timestamp, valueSlidersController.values);
+
+    if (orbitState) {
+        eyePosition = orbitState.eyePosition;
+        V = orbitState.viewMatrix;
+    } else {
+        if (wasOrbiting) {
+            ["eyeX", "eyeY", "eyeZ"].forEach((key, index) => {
+                const input = document.querySelector(`[data-slider-key="${key}"]`);
+                input.value = eyePosition[index];
+                input.dispatchEvent(new Event("input", { bubbles: true }));
+            });
+        }
+
+        const nextEyePosition = vec3(
+            valueSlidersController.values.eyeX,
+            valueSlidersController.values.eyeY,
+            valueSlidersController.values.eyeZ
+        );
+
+        try {
+            const nextViewMatrix = lookAt(
+                nextEyePosition,
+                vec3(0, 0, 0),
+                up
+            );
+            if (!nextViewMatrix.flat().every(Number.isFinite)) {
+                throw new Error("lookAt produced an invalid view matrix.");
+            }
+
+            eyePosition = nextEyePosition;
+            V = nextViewMatrix;
+        } catch (error) {
+            console.error("lookAt failed; keeping the previous camera view:", error);
+        }
+    }
+    wasOrbiting = orbitController.orbiting;
+
+    for (const batch of objectLists) {
+        for (const object of batch.objects) {
+            object.step(world);
+        }
+
+        device.queue.writeBuffer(
+            batch.instanceBuffer,
+            0,
+            new Float32Array(
+                batch.objects.flatMap(object => Array.from(flatten(object.getM())))
+            )
+        );
+    }
+    render();
+    requestAnimationFrame(animate);
+}
+
+async function createPipeline(layouts) {
+
+    let shaderModule = await createShaderModule("wgsl", device);
+
+    const pipeline = device.createRenderPipeline({
+        layout: 'auto',
+
+        vertex: {
+            module: shaderModule,
+            entryPoint: 'main_vs',
+            buffers: layouts, //instance and vertex layouts go in here
+        },
+
+        fragment: {
+            module: shaderModule,
+            entryPoint: 'main_fs',
+            targets: [{ format: canvasFormat }],
+        },
+        depthStencil: {
+            depthWriteEnabled: true,
+            depthCompare: 'less',
+            format: 'depth24plus',
+        },
+
+        multisample: {
+            count: SAMPLE_COUNT,
+        },
+
+        primitive: {
+            topology: TOPOLOGY,
+            frontFace: "ccw", // options { "ccw", "cw" }
+            cullMode: "back", // options { "none", "front", "back" }
+        },
+    });
+    return pipeline
+}
+
+
+document.getElementById("texture-controls").addEventListener("change", updateTextureSettings);
+updateTextureSettings();
+animate();

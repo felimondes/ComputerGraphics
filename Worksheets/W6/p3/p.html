@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>My Page</title>
+
+    <style>
+        .workspace {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        #my-canvas {
+            display: block;
+            max-width: 100%;
+            height: auto;
+        }
+
+        .controls {
+            width: 280px;
+            flex: 0 0 280px;
+        }
+
+        .control-row input {
+            display: block;
+            width: 100%;
+        }
+
+        @media (max-width: 820px) {
+            .workspace {
+                flex-direction: column;
+            }
+
+            .controls {
+                width: min(512px, 100%);
+                flex-basis: auto;
+            }
+        }
+    </style>
+
+    <script type="text/javascript" src="../../utility/MV.js"></script>
+    <script type="module" src="p.js"></script>
+</head>
+
+<body>
+
+    <script id="wgsl" type="x-shader" src="p.wgsl"></script>
+
+    <div class="workspace">
+
+        <canvas id="my-canvas" width="512" height="512">
+            Please use a browser that supports HTML5 canvas.
+        </canvas>
+
+        <aside class="controls">
+            <div id="subdivisions"></div>
+            <div id="orbiting"></div>
+            <div id="valueSliders"></div>
+        </aside>
+
+        
+        <form id="texture-controls">
+            <table>
+                <tbody>
+                    <tr>
+                        <th scope="row"><label for="wrap-mode">Wrapping</label></th>
+                        <td>
+                            <select id="wrap-mode">
+                                <option value="repeat">Repeat</option>
+                                <option value="clamp-to-edge">Clamp to edge</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="min-filter">Minification filter</label></th>
+                        <td>
+                            <select id="min-filter">
+                                <option value="nearest">Nearest</option>
+                                <option value="linear">Linear</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="mag-filter">Magnification filter</label></th>
+                        <td>
+                            <select id="mag-filter">
+                                <option value="nearest">Nearest</option>
+                                <option value="linear">Linear</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="mipmap-filter">Mipmap filter</label></th>
+                        <td>
+                            <select id="mipmap-filter">
+                                <option value="nearest">Nearest</option>
+                                <option value="linear">Linear</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><label for="mipmap-enabled">Mipmapping</label></th>
+                        <td><input id="mipmap-enabled" type="checkbox" checked></td>
+                    </tr>
+                </tbody>
+            </table>
+        </form>
+
+    </div>
+
+</body>
+</html>

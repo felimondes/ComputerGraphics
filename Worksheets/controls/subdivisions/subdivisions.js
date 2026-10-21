@@ -5,9 +5,10 @@ const MIN_SUBDIVISION = 0;
 const MAX_SUBDIVISION = 6;
 
 export class SubdivisionController {
-    constructor(objectLists, device) {
+    constructor(objectLists, device, vertexBufferFactory = createVertexBuffer) {
         this.objectLists = objectLists;
         this.device = device;
+        this.vertexBufferFactory = vertexBufferFactory;
         this.level = MIN_SUBDIVISION;
 
         this.decreaseButton = document.getElementById("decrease-subdivision");
@@ -65,12 +66,13 @@ export class SubdivisionController {
 
             batch.vertexBuffer.destroy();
             batch.indexBuffer.destroy();
-            batch.vertexBuffer = createVertexBuffer(
+            batch.vertexBuffer = this.vertexBufferFactory(
                 this.device,
-                shape.positions,
-                shape.normals
+                shape.getPositions(),
+                shape.getNormals(),
+                shape.getTextureCoordinates()
             );
-            batch.indexBuffer = createIndexBuffer(this.device, shape.indices);
+            batch.indexBuffer = createIndexBuffer(this.device, shape.getIndices());
         }
 
     }

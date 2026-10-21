@@ -4,14 +4,33 @@ export class OBJShape extends Shape {
     constructor(obj) {
         super();
 
-        this.positions = obj.vertices;
-        this.indices = obj.indices;
-        this.colors = obj.colors;
-        this.normals = obj.normals;
+        this.obj = obj;
+        this._positions = this.createPositions();
+        this._normals = this.createNormals();
+        this._indices = this.createIndices();
+        this._colors = this.createColors();
 
-        this.boundingRadius = this.calculateBoundingRadius(
-            this.positions
-        );
+        // this.boundingRadius = this.calculateBoundingRadius(this.getPositions());
+    }
+    
+    createPositions() {
+        return this.obj.vertices;
+    }
+
+    createNormals() {
+        return this.obj.normals;
+    }
+
+    createIndices() {
+        return this.obj.indices;
+    }
+
+    createColors() {
+        return this.obj.colors;
+    }
+
+    getCenter() {
+        return this.getCenterFromPositions();
     }
 
     static async fromFile(url) {
@@ -25,21 +44,8 @@ export class OBJShape extends Shape {
     }
 
 
-    calculateBoundingRadius(vertices) {
-        let radiusSquared = 0;
-
-        for (let i = 0; i < vertices.length; i += 4) {
-            const x = vertices[i];
-            const y = vertices[i + 1];
-            const z = vertices[i + 2];
-
-            radiusSquared = Math.max(
-                radiusSquared,
-                x * x + y * y + z * z
-            );
-        }
-
-        return Math.sqrt(radiusSquared);
+    calculateBoundingRadius() {
+        throw "not yet implemented:)"
     }
 
     getBoundingRadius() {

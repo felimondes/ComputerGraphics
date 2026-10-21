@@ -1,6 +1,6 @@
 import { createIndexBuffer } from "./utility/index.js";
 import { RenderObject } from "./utility/RenderObject.js";
-import { Rectangle3D } from "./utility/shapes/rectangle3D.js";
+import { Rectangle3D } from "./utility/shapes/cube.js";
 import * as uniform from "./utility/uniform.js";
 import {
     createInstanceBuffer,

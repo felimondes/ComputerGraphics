@@ -1,5 +1,9 @@
+import { RenderObject } from "../../utility/RenderObject.js";
+import { OBJShape } from "../../utility/shapes/OBJShape.js";
+import * as uniform from "../../utility/uniform.js";
 import {
     configureCanvas,
+    createBindGroup,
     createDevice,
     createIndexBuffer,
     createInstanceBuffer,
@@ -8,9 +12,6 @@ import {
     createVertexBuffer,
     createVertexBufferLayout
 } from "./mostlyClutter/index.js";
-import { RenderObject } from "../../utility/RenderObject.js";
-import { OBJShape } from "../../utility/shapes/OBJShape.js";
-import * as uniform from "../../utility/uniform.js";
 
 
 import { loadControlPanels } from "../../controls/controls.js";
@@ -42,16 +43,20 @@ const objectLists = [
 ];
 
 //Controls
-const orbit = new OrbitController();
-new SubdivisionController(objectLists, device);
-const valueSliders = new ValueSliderController();
+const orbitController = new OrbitController();
+const valueSlidersController = new ValueSliderController();
+new SubdivisionController(objectLists, device)
 
 
 //Setup buffers
 for (const batch of objectLists) {
-    batch.vertexBuffer = createVertexBuffer(device, batch.shape.positions, batch.shape.normals);
+    batch.vertexBuffer = createVertexBuffer(
+        device,
+        batch.shape.getPositions(),
+        batch.shape.getNormals()
+    );
     batch.instanceBuffer = createInstanceBuffer(device, batch.objects.map(object => object.getM()));
-    batch.indexBuffer = createIndexBuffer(device, batch.shape.indices);
+    batch.indexBuffer = createIndexBuffer(device, batch.shape.getIndices());
 }
 
 
@@ -63,13 +68,13 @@ let instanceBufferLayout = createInstanceBufferLayout();
 //Prepare uniforms
 
 let eyePosition = vec3(
-    valueSliders.values.eyeX,
-    valueSliders.values.eyeY,
-    valueSliders.values.eyeZ
+    valueSlidersController.values.eyeX,
+    valueSlidersController.values.eyeY,
+    valueSlidersController.values.eyeZ
 );
 const cameraRadius = Math.hypot(
-    valueSliders.values.eyeX,
-    valueSliders.values.eyeZ
+    valueSlidersController.values.eyeX,
+    valueSlidersController.values.eyeZ
 );
 let up = vec3(0, 1, 0) //up = world up. Depending on convention either z or y is up. Here it is y.
 let V = lookAt(eyePosition, (obj_1_1.center), up);
@@ -111,7 +116,8 @@ const depthTexture = device.createTexture({
 const TOPOLOGY = "triangle-list"; //Vertices interpreted as triangles
 
 const pipeline = await createPipeline([vertexBufferLayout, instanceBufferLayout]);
-const bindGroup = uniform.createBindGroup(device, uniforms.buffer, pipeline);
+const bindGroup = createBindGroup(device, uniforms.buffer, pipeline);
+
 
 const world = {
     min: vec3(-10, -10, -10),
@@ -144,7 +150,7 @@ function render() {
     uniform.add(device, uniforms, {
         V: V,
         P: P,
-        ...valueSliders.values,
+        ...valueSlidersController.values,
         eyePosition: eyePosition,
     });
 
@@ -153,7 +159,7 @@ function render() {
         pass.setVertexBuffer(0, batch.vertexBuffer);
         pass.setVertexBuffer(1, batch.instanceBuffer);
         pass.setIndexBuffer(batch.indexBuffer, 'uint32');
-        pass.drawIndexed(batch.shape.indices.length, batch.objects.length);
+        pass.drawIndexed(batch.shape.getIndices().length, batch.objects.length);
     }
 
     pass.end();
@@ -162,15 +168,15 @@ function render() {
 
 function animate(timestamp = 0) {
 
-    const orbitState = orbit.update(timestamp, Math.max(cameraRadius, 0.01));
+    const orbitState = orbitController.update(timestamp, Math.max(cameraRadius, 0.01));
     if (orbitState) {
         eyePosition = orbitState.eyePosition;
         V = orbitState.viewMatrix;
     } else {
         const nextEyePosition = vec3(
-            valueSliders.values.eyeX,
-            valueSliders.values.eyeY,
-            valueSliders.values.eyeZ
+            valueSlidersController.values.eyeX,
+            valueSlidersController.values.eyeY,
+            valueSlidersController.values.eyeZ
         );
 
         try {
