@@ -1,14 +1,14 @@
-import { createIndexBuffer, createVertexBuffer } from "../../W5/p3/mostlyClutter/index.js";
+import { createIndexBuffer } from "../../W5/p3/mostlyClutter/index.js";
 import { RenderObject } from "../../utility/RenderObject.js";
 
 const MIN_SUBDIVISION = 0;
 const MAX_SUBDIVISION = 6;
 
 export class SubdivisionController {
-    constructor(objectLists, device, vertexBufferFactory = createVertexBuffer) {
+    constructor(objectLists, device) {
         this.objectLists = objectLists;
         this.device = device;
-        this.vertexBufferFactory = vertexBufferFactory;
+        this.vertexBufferFactory = this.vertexBufferFactory;
         this.level = MIN_SUBDIVISION;
 
         this.decreaseButton = document.getElementById("decrease-subdivision");
@@ -27,6 +27,28 @@ export class SubdivisionController {
         });
 
         this.updateLabel();
+    }
+
+    vertexBufferFactory(device, positions, normals) {
+        if (positions.length % 4 !== 0 || normals.length !== positions.length) {
+            throw new Error("Vertex positions and normals must contain matching vec4 data.");
+        }
+
+        const data = new Float32Array(positions.length + normals.length);
+        for (let vertex = 0; vertex < positions.length / 4; vertex++) {
+            const vertexOffset = vertex * 8;
+            const attributeOffset = vertex * 4;
+            data.set(positions.subarray(attributeOffset, attributeOffset + 4), vertexOffset);
+            data.set(normals.subarray(attributeOffset, attributeOffset + 4), vertexOffset + 4);
+        }
+
+        const vertexBuffer = device.createBuffer({
+            size: Math.max(data.byteLength, 4),
+            usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+        });
+        device.queue.writeBuffer(vertexBuffer, 0, data);
+
+        return vertexBuffer;
     }
 
     clampLevel(level) {
@@ -49,7 +71,7 @@ export class SubdivisionController {
                 continue;
             }
 
-            
+
             const shape = batch.shape.subdivide(this.level);
             const updatedObjects = batch.objects.map((object) => {
                 const replacement = new RenderObject(shape, object.center);

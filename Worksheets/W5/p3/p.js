@@ -14,10 +14,10 @@ import {
 } from "./mostlyClutter/index.js";
 
 
+import { CameraController } from "../../controls/camera/camera.js";
 import { loadControlPanels } from "../../controls/controls.js";
-import { OrbitController } from "../../controls/orbiting/orbiting.js";
+import { LightingController } from "../../controls/lighting/lighting.js";
 import { SubdivisionController } from "../../controls/subdivisions/subdivisions.js";
-import { ValueSliderController } from "../../controls/valueSliders/valueSliders.js";
 import { Sphere } from "../../utility/shapes/sphere.js";
 await loadControlPanels();
 
@@ -43,8 +43,8 @@ const objectLists = [
 ];
 
 //Controls
-const orbitController = new OrbitController();
-const valueSlidersController = new ValueSliderController();
+const cameraController = new CameraController(canvas);
+const lightingController = new LightingController();
 new SubdivisionController(objectLists, device)
 
 
@@ -68,13 +68,9 @@ let instanceBufferLayout = createInstanceBufferLayout();
 //Prepare uniforms
 
 let eyePosition = vec3(
-    valueSlidersController.values.eyeX,
-    valueSlidersController.values.eyeY,
-    valueSlidersController.values.eyeZ
-);
-const cameraRadius = Math.hypot(
-    valueSlidersController.values.eyeX,
-    valueSlidersController.values.eyeZ
+    cameraController.values.eyeX,
+    cameraController.values.eyeY,
+    cameraController.values.eyeZ
 );
 let up = vec3(0, 1, 0) //up = world up. Depending on convention either z or y is up. Here it is y.
 let V = lookAt(eyePosition, (obj_1_1.center), up);
@@ -150,7 +146,7 @@ function render() {
     uniform.add(device, uniforms, {
         V: V,
         P: P,
-        ...valueSlidersController.values,
+        ...lightingController.values,
         eyePosition: eyePosition,
     });
 
@@ -168,15 +164,15 @@ function render() {
 
 function animate(timestamp = 0) {
 
-    const orbitState = orbitController.update(timestamp, Math.max(cameraRadius, 0.01));
+    const orbitState = cameraController.update(timestamp);
     if (orbitState) {
         eyePosition = orbitState.eyePosition;
         V = orbitState.viewMatrix;
     } else {
         const nextEyePosition = vec3(
-            valueSlidersController.values.eyeX,
-            valueSlidersController.values.eyeY,
-            valueSlidersController.values.eyeZ
+            cameraController.values.eyeX,
+            cameraController.values.eyeY,
+            cameraController.values.eyeZ
         );
 
         try {

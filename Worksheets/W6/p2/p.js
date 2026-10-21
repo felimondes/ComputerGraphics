@@ -4,17 +4,18 @@
 
 
 import * as uniform from "../../utility/uniform.js";
-ort { generateMipmap, numMipLevels } from "./genmipmap.js";imp
+import { generateMipmap, numMipLevels } from "./genmipmap.js";
 import {
     configureCanvas,
     createDevice,
 } from "./mostlyClutter/index.js";
 
+
 //Connect to GPU
 const device = await createDevice();
 let { canvas, context, canvasFormat } = configureCanvas(device);
 
-
+//Objects
 //Positions + UVS
 var positions = [vec4(-4, -1, -1, 1), vec4(4, -1, -1, 1), vec4(4, -1, -21, 1), vec4(-4, -1, -21, 1)];
 var posStride = 16;

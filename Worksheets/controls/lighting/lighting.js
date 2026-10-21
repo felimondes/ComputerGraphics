@@ -1,19 +1,20 @@
-export class ValueSliderController {
+export class LightingController {
     constructor() {
         this.values = {};
+        const controls = document.getElementById("lighting");
+        if (!controls) {
+            throw new Error("Lighting controls are missing from the page.");
+        }
+
         const outputs = new Map(
-            Array.from(document.querySelectorAll("[data-slider-output]"))
+            Array.from(controls.querySelectorAll("[data-slider-output]"))
                 .map((output) => [output.dataset.sliderOutput, output])
         );
 
-        for (const input of document.querySelectorAll("[data-slider-key]")) {
+        for (const input of controls.querySelectorAll("[data-slider-key]")) {
             const key = input.dataset.sliderKey;
             const output = outputs.get(key);
             const value = Number(input.value);
-
-            if (!key || !Number.isFinite(value)) {
-                throw new Error("Value sliders require a key and numeric value.");
-            }
 
             this.values[key] = value;
             this.updateOutput(output, value, input.step);
@@ -30,7 +31,7 @@ export class ValueSliderController {
         }
 
         if (Object.keys(this.values).length === 0) {
-            throw new Error("No value sliders were found.");
+            throw new Error("No lighting sliders were found.");
         }
     }
 

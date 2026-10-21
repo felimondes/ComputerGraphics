@@ -59,10 +59,6 @@ fn main_vs(input: VertexInput) -> VertexOutput
 @fragment
 fn main_fs(input: VertexOutput) -> @location(0) vec4f
 {   
-
-
-
-
     const PI: f32 = 3.14159265359;
     let n = normalize(input.normal);
     let phi = atan2(n.z, n.x);

@@ -1,22 +1,18 @@
 import { RenderObject } from "../../utility/RenderObject.js";
+import { OBJShape } from "../../utility/shapes/OBJShape.js";
 import * as uniform from "../../utility/uniform.js";
 import {
     configureCanvas,
     createDevice,
-    createIndexBuffer,
-    createInstanceBuffer,
-    createInstanceBufferLayout,
-    createShaderModule,
-    createVertexBuffer,
-    createVertexBufferLayout
+    createShaderModule
 } from "./mostlyClutter/index.js";
 
+import { CameraController } from "../../controls/camera/camera.js";
 import { loadControlPanels } from "../../controls/controls.js";
-import { OrbitController } from "../../controls/orbiting/orbiting.js";
+import { LightingController } from "../../controls/lighting/lighting.js";
 import { SubdivisionController } from "../../controls/subdivisions/subdivisions.js";
-import { ValueSliderController } from "../../controls/valueSliders/valueSliders.js";
+import { TexturesController } from "../../controls/textures/textures.js";
 import { Sphere } from "../../utility/shapes/sphere.js";
-import { generateMipmap, numMipLevels } from "./genmipmap.js";
 await loadControlPanels();
 
 
@@ -25,107 +21,112 @@ await loadControlPanels();
 const device = await createDevice();
 let { canvas, context, canvasFormat } = configureCanvas(device);
 
-const objShape_2 = new Sphere(0);
+
+//Objects
+
+const objShape_1 = await OBJShape.fromFile(new URL("./suzanne.obj", import.meta.url));
+// let objects_1 = [obj_1_1];
+
+
+const objShape_2 = new Sphere(5);
 const obj_2_1 = new RenderObject(objShape_2, vec3(0, 0, 0));
 let objects_2 = [obj_2_1];
 
+
+
 const objectLists = [
+    // { objects: objects_1, shape: objShape_1 },
     { objects: objects_2, shape: objShape_2 }
 ];
 
 //Controls
-const orbitController = new OrbitController();
-const valueSlidersController = new ValueSliderController();
-new SubdivisionController(objectLists, device)
-
-
-//Setup buffers
-for (const batch of objectLists) {
-    batch.vertexBuffer = createVertexBuffer(
-        device,
-        batch.shape.getPositions(),
-        batch.shape.getNormals()
-    );
-    batch.instanceBuffer = createInstanceBuffer(device, batch.objects.map(object => object.getM()));
-    batch.indexBuffer = createIndexBuffer(device, batch.shape.getIndices());
-}
+const cameraController = new CameraController(canvas);
+const lightingController = new LightingController();
 
 
 //Setup layouts
-let vertexBufferLayout = createVertexBufferLayout();
-let instanceBufferLayout = createInstanceBufferLayout();
+let vertexBufferLayout = {
+    arrayStride: 16 + 16,
+    attributes: [
+        {
+            format: "float32x4",
+            offset: 0,
+            shaderLocation: 0,
+        },
+        {
+            format: "float32x4",
+            offset: 16,
+            shaderLocation: 1,
+        },
+    ]
+};
 
 
+let instanceBufferLayout = {
+    arrayStride: 64,
+    stepMode: 'instance', //IMPORTANT - ONLY WORKS PER INSTANCE, so for each object that is rendered. 
+    attributes: [
+        { format: 'float32x4', offset: 0, shaderLocation: 2 }, //first vector in model matrix
+        { format: 'float32x4', offset: 16, shaderLocation: 3 }, //second ...
+        { format: 'float32x4', offset: 32, shaderLocation: 4 }, //...
+        { format: 'float32x4', offset: 48, shaderLocation: 5 },
+    ],
+};
 
-//Texture
-const response = await fetch("earth.jpg");
-const blob = await response.blob();
-const img = await createImageBitmap(blob, { colorSpaceConversion: 'none' });
+//Setup buffers
+for (const batch of objectLists) {
+    //Vertex Buffers
+    let positions = batch.shape.getPositions();
+    let normals = batch.shape.getNormals();
 
-const wrapModeControl = document.getElementById("wrap-mode");
-const minFilterControl = document.getElementById("min-filter");
-const magFilterControl = document.getElementById("mag-filter");
-const mipmapFilterControl = document.getElementById("mipmap-filter");
-const mipmapEnabledControl = document.getElementById("mipmap-enabled")
+    const data = new Float32Array(positions.length + normals.length);
+    for (let i = 0; i < positions.length / 4; i++) {
+        const vertexOffset = i * 8;
+        const attributeOffset = i * 4;
+        data.set(positions.subarray(attributeOffset, attributeOffset + 4), vertexOffset);
+        data.set(normals.subarray(attributeOffset, attributeOffset + 4), vertexOffset + 4);
+    }
 
-let texture;
-let bindGroup;
-
-function updateTextureSettings() {
-    //mipmap
-
-    var myTexture = device.createTexture({
-        size: [img.width, img.height, 1],
-        format: "rgba8unorm",
-        mipLevelCount: mipmapEnabledControl.checked ? numMipLevels(img.width, img.height) : 1,
-        usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT
+    let vertexBuffer = batch.vertexBuffer = device.createBuffer({
+        size: Math.max(data.byteLength, 4),
+        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
     });
-    device.queue.copyExternalImageToTexture(
-        { source: img, flipY: true },
-        { texture: myTexture },
-        { width: img.width, height: img.height },
+    device.queue.writeBuffer(vertexBuffer, 0, data);
+
+
+    //Instance buffers
+    let modelMatrices = batch.objects.map(object => object.getM());
+
+
+    const data1 = new Float32Array(
+        modelMatrices.flatMap(model => Array.from(flatten(model)))
     );
-
-    if (mipmapEnabledControl.checked)
-        generateMipmap(device, myTexture);
-
-    const sampler = device.createSampler({
-        addressModeU: wrapModeControl.value,
-        addressModeV: wrapModeControl.value,
-        minFilter: minFilterControl.value,
-        magFilter: magFilterControl.value,
-        mipmapFilter: mipmapFilterControl.value,
+    const instanceBuffer = device.createBuffer({
+        size: data1.byteLength,
+        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
     });
+    device.queue.writeBuffer(instanceBuffer, 0, data1);
+    batch.instanceBuffer = instanceBuffer;
 
 
-    bindGroup = device.createBindGroup({
-        layout: pipeline.getBindGroupLayout(0),
-        entries: [
-            { binding: 0, resource: uniforms.buffer },
-            { binding: 1, resource: sampler },
-            { binding: 2, resource: myTexture.createView() },
-        ],
+    //Indices
+    let indices = batch.shape.getIndices();
+    const indexBuffer = device.createBuffer({
+        size: indices.byteLength,
+        usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
     });
-
-    render();
-    texture?.destroy();
-    texture = myTexture;
+    device.queue.writeBuffer(
+        indexBuffer,
+        0,
+        indices
+    );
+    batch.indexBuffer = indexBuffer;
 }
 
 
+
+
 //Prepare uniforms
-let eyePosition = vec3(
-    valueSlidersController.values.eyeX,
-    valueSlidersController.values.eyeY,
-    valueSlidersController.values.eyeZ
-);
-const cameraRadius = Math.hypot(
-    valueSlidersController.values.eyeX,
-    valueSlidersController.values.eyeZ
-);
-let up = vec3(0, 1, 0) //up = world up. Depending on convention either z or y is up. Here it is y.
-let V = lookAt(eyePosition, (vec3(0, 0, 0)), up);
-let P = perspective(45, canvas.width / canvas.height, 0.01, 100);
 const uniforms = uniform.createBufferAndLayout(
     device,
     [
@@ -164,17 +165,18 @@ const TOPOLOGY = "triangle-list"; //Vertices interpreted as triangles
 
 const pipeline = await createPipeline([vertexBufferLayout, instanceBufferLayout]);
 
-
-
-// createBindGroup(device, uniforms.buffer, pipeline);
-
+const texturesController = new TexturesController({
+    device,
+    pipeline,
+    uniforms,
+    imageUrl: new URL("./earth.jpg", import.meta.url)
+});
+await texturesController.initialize();
 
 const world = {
     min: vec3(-10, -10, -10),
     max: vec3(10, 10, 10)
 };
-
-let wasOrbiting = false;
 
 //Render
 function render() {
@@ -198,13 +200,13 @@ function render() {
     pass.setPipeline(pipeline);
 
     uniform.add(device, uniforms, {
-        V: V,
-        P: P,
-        ...valueSlidersController.values,
-        eyePosition: eyePosition,
+        V: cameraController.V,
+        P: cameraController.P,
+        ...lightingController.values,
+        eyePosition: cameraController.eyePosition,
     });
 
-    pass.setBindGroup(0, bindGroup);
+    pass.setBindGroup(0, texturesController.bindGroup);
     for (const batch of objectLists) {
         pass.setVertexBuffer(0, batch.vertexBuffer);
         pass.setVertexBuffer(1, batch.instanceBuffer);
@@ -217,44 +219,7 @@ function render() {
 }
 
 function animate(timestamp = 0) {
-
-    const orbitState = orbitController.update(timestamp, valueSlidersController.values);
-
-    if (orbitState) {
-        eyePosition = orbitState.eyePosition;
-        V = orbitState.viewMatrix;
-    } else {
-        if (wasOrbiting) {
-            ["eyeX", "eyeY", "eyeZ"].forEach((key, index) => {
-                const input = document.querySelector(`[data-slider-key="${key}"]`);
-                input.value = eyePosition[index];
-                input.dispatchEvent(new Event("input", { bubbles: true }));
-            });
-        }
-
-        const nextEyePosition = vec3(
-            valueSlidersController.values.eyeX,
-            valueSlidersController.values.eyeY,
-            valueSlidersController.values.eyeZ
-        );
-
-        try {
-            const nextViewMatrix = lookAt(
-                nextEyePosition,
-                vec3(0, 0, 0),
-                up
-            );
-            if (!nextViewMatrix.flat().every(Number.isFinite)) {
-                throw new Error("lookAt produced an invalid view matrix.");
-            }
-
-            eyePosition = nextEyePosition;
-            V = nextViewMatrix;
-        } catch (error) {
-            console.error("lookAt failed; keeping the previous camera view:", error);
-        }
-    }
-    wasOrbiting = orbitController.orbiting;
+    cameraController.update(timestamp);
 
     for (const batch of objectLists) {
         for (const object of batch.objects) {
@@ -310,7 +275,4 @@ async function createPipeline(layouts) {
     return pipeline
 }
 
-
-document.getElementById("texture-controls").addEventListener("change", updateTextureSettings);
-updateTextureSettings();
 animate();

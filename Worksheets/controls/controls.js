@@ -1,8 +1,9 @@
 export async function loadControlPanels() {
     const panels = [
-        ["orbiting", "./orbiting/orbiting.html"],
+        ["camera", "./camera/camera.html"],
         ["subdivisions", "./subdivisions/subdivisions.html"],
-        ["valueSliders", "./valueSliders/valueSliders.html"],
+        ["lighting", "./lighting/lighting.html"],
+        ["textures", "./textures/textures.html"]
     ];
 
     await Promise.all(
