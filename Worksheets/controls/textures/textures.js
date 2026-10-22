@@ -1,11 +1,21 @@
 import { generateMipmap, numMipLevels } from "../../utility/genmipmap.js";
 export class TexturesController {
-    constructor({ device, pipeline, uniforms, imageUrl, cubeMapUrls }) {
+    constructor({
+        device,
+        pipeline,
+        uniforms,
+        imageUrl,
+        cubeMapUrls,
+        bindGroupIndex = 0,
+        textureOnly = false
+    }) {
         this.device = device;
         this.pipeline = pipeline;
         this.uniforms = uniforms;
         this.imageUrl = imageUrl;
         this.cubeMapUrls = cubeMapUrls;
+        this.bindGroupIndex = bindGroupIndex;
+        this.textureOnly = textureOnly;
 
         const panel = document.getElementById("textures");
         this.controls = panel?.querySelector("#texture-controls");
@@ -20,7 +30,9 @@ export class TexturesController {
         this.mipmapEnabledControl = this.controls.querySelector("#mipmap-enabled");
         this.texture = null;
         this.bindGroup = null;
-        this.uniformBuffers = new Set([uniforms.buffer]);
+        this.uniformBuffers = new Set(
+            textureOnly ? [null] : uniforms ? [uniforms.buffer] : []
+        );
         this.bindGroups = new Map();
         this.sampler = null;
     }
@@ -33,7 +45,7 @@ export class TexturesController {
         return this.bindGroups.get(uniformBuffer);
     }
 
-    getBindGroup(uniformBuffer = this.uniforms.buffer) {
+    getBindGroup(uniformBuffer = this.uniforms ? this.uniforms.buffer : null) {
         const bindGroup = this.bindGroups.get(uniformBuffer);
         if (!bindGroup) {
             throw new Error("No texture bind group exists for the requested uniform buffer.");
@@ -47,17 +59,27 @@ export class TexturesController {
             const textureView = this.cubeMapUrls
                 ? texture.createView({ dimension: "cube", arrayLayerCount: 6 })
                 : texture.createView();
-            const bindGroup = this.device.createBindGroup({
-                layout: this.pipeline.getBindGroupLayout(0),
-                entries: [
+            const entries = this.textureOnly
+                ? [
+                    { binding: 0, resource: sampler },
+                    { binding: 1, resource: textureView },
+                ]
+                : [
                     { binding: 0, resource: uniformBuffer },
                     { binding: 1, resource: sampler },
                     { binding: 2, resource: textureView },
-                ],
+                ];
+            const bindGroup = this.device.createBindGroup({
+                layout: this.pipeline.getBindGroupLayout(this.bindGroupIndex),
+                entries,
             });
             this.bindGroups.set(uniformBuffer, bindGroup);
         }
-        this.bindGroup = this.bindGroups.get(this.uniforms.buffer);
+        this.bindGroup = this.textureOnly
+            ? this.bindGroups.get(null)
+            : this.uniforms
+                ? this.bindGroups.get(this.uniforms.buffer)
+                : null;
     }
 
     async initializeCubeMap() {
