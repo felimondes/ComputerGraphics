@@ -9,6 +9,7 @@ import {
 import { CameraController } from "../../controls/camera/camera.js";
 import { loadControlPanels } from "../../controls/controls.js";
 import { TexturesController } from "../../controls/textures/textures.js";
+import { Rectangle } from "../../utility/shapes/rectangle.js";
 import { Sphere } from "../../utility/shapes/sphere.js";
 await loadControlPanels();
 
@@ -19,15 +20,15 @@ const device = await createDevice();
 let { canvas, context, canvasFormat } = configureCanvas(device);
 
 
+
+let points = [vec4(-1, -1, 0.999, 1), vec4(1, -1, 0.999, 1), vec4(-1, 1, 0.999, 1), vec4(1, 1, 0.999, 1)]
+const backgroundShape = new Rectangle(points);
+
 //Objects
 const objShape_2 = new Sphere(5);
 const obj_2_1 = new RenderObject(objShape_2, vec3(0, 0, 0));
 let objects_2 = [obj_2_1];
-
-
-
 const objectLists = [
-    // { objects: objects_1, shape: objShape_1 },
     { objects: objects_2, shape: objShape_2 }
 ];
 
@@ -64,13 +65,16 @@ let instanceBufferLayout = {
     ],
 };
 
-//Setup buffers
-for (const batch of objectLists) {
-    //Vertex Buffers
-    let positions = batch.shape.getPositions();
-    let normals = batch.shape.getNormals();
 
+
+//Setup buffers
+
+//for background
+function createVertexData(shape) {
+    const positions = shape.getPositions();
+    const normals = shape.getNormals();
     const data = new Float32Array(positions.length + normals.length);
+
     for (let i = 0; i < positions.length / 4; i++) {
         const vertexOffset = i * 8;
         const attributeOffset = i * 4;
@@ -78,6 +82,33 @@ for (const batch of objectLists) {
         data.set(normals.subarray(attributeOffset, attributeOffset + 4), vertexOffset + 4);
     }
 
+    return data;
+}
+
+const backgroundVertexData = createVertexData(backgroundShape);
+const backgroundVertexBuffer = device.createBuffer({
+    size: Math.max(backgroundVertexData.byteLength, 4),
+    usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+});
+device.queue.writeBuffer(backgroundVertexBuffer, 0, backgroundVertexData);
+
+const backgroundInstanceBuffer = device.createBuffer({
+    size: 64,
+    usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+});
+device.queue.writeBuffer(backgroundInstanceBuffer, 0, new Float32Array(flatten(mat4())));
+
+const backgroundIndexBuffer = device.createBuffer({
+    size: backgroundShape.getIndices().byteLength,
+    usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
+});
+device.queue.writeBuffer(backgroundIndexBuffer, 0, backgroundShape.getIndices());
+
+
+//For objects
+for (const batch of objectLists) {
+    //Vertex Buffers
+    const data = createVertexData(batch.shape);
     let vertexBuffer = batch.vertexBuffer = device.createBuffer({
         size: Math.max(data.byteLength, 4),
         usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
@@ -115,8 +146,6 @@ for (const batch of objectLists) {
 }
 
 
-
-
 //Prepare uniforms
 const uniforms = uniform.createBufferAndLayout(
     device,
@@ -124,6 +153,16 @@ const uniforms = uniform.createBufferAndLayout(
         { name: "V", type: "mat4" },
         { name: "P", type: "mat4" },
         { name: "eyePosition", type: "vec3" },
+        { name: "Mtex", type: "mat4" },
+    ]
+);
+const backgroundUniforms = uniform.createBufferAndLayout(
+    device,
+    [
+        { name: "V", type: "mat4" },
+        { name: "P", type: "mat4" },
+        { name: "eyePosition", type: "vec3" },
+        { name: "Mtex", type: "mat4" },
     ]
 );
 
@@ -169,6 +208,7 @@ const texturesController = new TexturesController({
     cubeMapUrls
 });
 await texturesController.initialize();
+texturesController.registerUniformBuffer(backgroundUniforms.buffer);
 
 const world = {
     min: vec3(-10, -10, -10),
@@ -194,15 +234,31 @@ function render() {
         },
     });
 
+
+    // Unproject clip coordinates to camera space, then rotate directions into world space.
+    const backgroundTextureMatrix = mult(inverse(cameraController.V), inverse(cameraController.P));
+    uniform.add(device, backgroundUniforms, {
+        V: mat4(),
+        P: mat4(),
+        eyePosition: vec3(0, 0, 0),
+        Mtex: backgroundTextureMatrix,
+    });
+
     pass.setPipeline(pipeline);
+    pass.setBindGroup(0, texturesController.getBindGroup(backgroundUniforms.buffer));
+    pass.setVertexBuffer(0, backgroundVertexBuffer);
+    pass.setVertexBuffer(1, backgroundInstanceBuffer);
+    pass.setIndexBuffer(backgroundIndexBuffer, "uint32");
+    pass.drawIndexed(backgroundShape.getIndices().length);
 
     uniform.add(device, uniforms, {
         V: cameraController.V,
         P: cameraController.P,
         eyePosition: cameraController.eyePosition,
+        Mtex: mat4(),
     });
 
-    pass.setBindGroup(0, texturesController.bindGroup);
+    pass.setBindGroup(0, texturesController.getBindGroup(uniforms.buffer));
     for (const batch of objectLists) {
         pass.setVertexBuffer(0, batch.vertexBuffer);
         pass.setVertexBuffer(1, batch.instanceBuffer);
@@ -239,11 +295,11 @@ async function createPipeline(layouts) {
     let shaderModule = await createShaderModule("wgsl", device);
 
     const pipeline = device.createRenderPipeline({
-        layout: 'auto',
+        layout: "auto",
 
         vertex: {
             module: shaderModule,
-            entryPoint: 'main_vs',
+            entryPoint: "main_vs",
             buffers: layouts, //instance and vertex layouts go in here
         },
 

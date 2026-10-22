@@ -92,7 +92,6 @@ export class SubdivisionController {
                 this.device,
                 shape.getPositions(),
                 shape.getNormals(),
-                shape.getTextureCoordinates()
             );
             batch.indexBuffer = createIndexBuffer(this.device, shape.getIndices());
         }

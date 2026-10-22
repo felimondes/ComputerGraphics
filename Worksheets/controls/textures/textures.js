@@ -20,6 +20,44 @@ export class TexturesController {
         this.mipmapEnabledControl = this.controls.querySelector("#mipmap-enabled");
         this.texture = null;
         this.bindGroup = null;
+        this.uniformBuffers = new Set([uniforms.buffer]);
+        this.bindGroups = new Map();
+        this.sampler = null;
+    }
+
+    registerUniformBuffer(uniformBuffer) {
+        this.uniformBuffers.add(uniformBuffer);
+        if (this.texture && this.sampler) {
+            this.updateBindGroups(this.texture, this.sampler);
+        }
+        return this.bindGroups.get(uniformBuffer);
+    }
+
+    getBindGroup(uniformBuffer = this.uniforms.buffer) {
+        const bindGroup = this.bindGroups.get(uniformBuffer);
+        if (!bindGroup) {
+            throw new Error("No texture bind group exists for the requested uniform buffer.");
+        }
+        return bindGroup;
+    }
+
+    updateBindGroups(texture, sampler) {
+        this.bindGroups.clear();
+        for (const uniformBuffer of this.uniformBuffers) {
+            const textureView = this.cubeMapUrls
+                ? texture.createView({ dimension: "cube", arrayLayerCount: 6 })
+                : texture.createView();
+            const bindGroup = this.device.createBindGroup({
+                layout: this.pipeline.getBindGroupLayout(0),
+                entries: [
+                    { binding: 0, resource: uniformBuffer },
+                    { binding: 1, resource: sampler },
+                    { binding: 2, resource: textureView },
+                ],
+            });
+            this.bindGroups.set(uniformBuffer, bindGroup);
+        }
+        this.bindGroup = this.bindGroups.get(this.uniforms.buffer);
     }
 
     async initializeCubeMap() {
@@ -48,7 +86,7 @@ export class TexturesController {
 
         for (let i = 0; i < this.cubeMapImages.length; ++i) {
             this.device.queue.copyExternalImageToTexture(
-                { source: this.cubeMapImages[i] },
+                { source: this.cubeMapImages[i], flipY: true },
                 { texture: nextTexture, origin: [0, 0, i] },
                 { width, height }
             );
@@ -66,18 +104,10 @@ export class TexturesController {
             mipmapFilter: this.mipmapFilterControl.value,
         });
 
-        const nextBindGroup = this.device.createBindGroup({
-            layout: this.pipeline.getBindGroupLayout(0),
-            entries: [
-                { binding: 0, resource: this.uniforms.buffer },
-                { binding: 1, resource: sampler },
-                { binding: 2, resource: nextTexture.createView({ dimension: "cube", arrayLayerCount: 6 }) },
-            ],
-        });
-
+        this.updateBindGroups(nextTexture, sampler);
         this.texture?.destroy();
         this.texture = nextTexture;
-        this.bindGroup = nextBindGroup;
+        this.sampler = sampler;
 
     }
 
@@ -127,17 +157,9 @@ export class TexturesController {
             magFilter: this.magFilterControl.value,
             mipmapFilter: this.mipmapFilterControl.value,
         });
-        const nextBindGroup = this.device.createBindGroup({
-            layout: this.pipeline.getBindGroupLayout(0),
-            entries: [
-                { binding: 0, resource: this.uniforms.buffer },
-                { binding: 1, resource: sampler },
-                { binding: 2, resource: nextTexture.createView() },
-            ],
-        });
-
+        this.updateBindGroups(nextTexture, sampler);
         this.texture?.destroy();
         this.texture = nextTexture;
-        this.bindGroup = nextBindGroup;
+        this.sampler = sampler;
     }
 }

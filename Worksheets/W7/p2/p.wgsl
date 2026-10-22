@@ -2,9 +2,8 @@ struct Uniforms {
     V: mat4x4f,
     P: mat4x4f,
     eyePosition: vec3f,
+    Mtex: mat4x4f,
 };
-
-
 
 @group(0) @binding(0)
 var<uniform> uniforms: Uniforms;
@@ -23,11 +22,9 @@ struct VertexInput {
     @location(5) model3: vec4f,
 };
 
-
 struct VertexOutput {
     @builtin(position) position: vec4f,
-    @location(0) normal: vec3f,
-    @location(1) worldPosition: vec3f,
+    @location(0) textureDirection: vec3f,
 };
 
 @vertex
@@ -43,13 +40,12 @@ fn main_vs(input: VertexInput) -> VertexOutput
     var output: VertexOutput;
     let worldPosition = model * input.position;
     output.position = uniforms.P * uniforms.V * worldPosition;
-    output.normal = (model * vec4f(input.normal.xyz, 0.0)).xyz;
-    output.worldPosition = worldPosition.xyz;
+    output.textureDirection = (uniforms.Mtex * input.position).xyz;
     return output;
 }
 
 @fragment
 fn main_fs(input: VertexOutput) -> @location(0) vec4f
 {
-    return textureSample(myTexture, mySampler, normalize(input.normal));
+    return textureSample(myTexture, mySampler, normalize(input.textureDirection));
 }

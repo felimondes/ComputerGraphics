@@ -48,9 +48,6 @@ export class Shape {
         return this._colors;
     }
 
-    getTextureCoordinates() {
-        return new Float32Array(this.getPositions().length / 2);
-    }
 
     getCenter() {
         throw new Error("getCenter must be implemented by the subclass.");

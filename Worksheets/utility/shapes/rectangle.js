@@ -28,21 +28,13 @@ export class Rectangle extends Shape {
     }
 
     createIndices() {
-        return new Uint32Array([0, 1, 2, 0, 2, 3]);
+        return new Uint32Array([0, 1, 3, 0, 3, 2]);
     }
 
     createColors() {
-        return this.pointList.map(() => vec4(1, 1, 1, 1));
+        return this.pointList.map(() => vec4(1, 0, 0, 1));
     }
 
-    getTextureCoordinates() {
-        return new Float32Array([
-            -1.5, 0.0,
-             2.5, 0.0,
-             2.5, 10.0,
-            -1.5, 10.0,
-        ]);
-    }
 
     getCenter() {
         return this.getCenterFromPositions();
