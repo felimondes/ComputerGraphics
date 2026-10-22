@@ -10,7 +10,6 @@ import {
 import { CameraController } from "../../controls/camera/camera.js";
 import { loadControlPanels } from "../../controls/controls.js";
 import { LightingController } from "../../controls/lighting/lighting.js";
-import { SubdivisionController } from "../../controls/subdivisions/subdivisions.js";
 import { TexturesController } from "../../controls/textures/textures.js";
 import { Sphere } from "../../utility/shapes/sphere.js";
 await loadControlPanels();
@@ -169,7 +168,7 @@ const texturesController = new TexturesController({
     device,
     pipeline,
     uniforms,
-    imageUrl: new URL("./earth.jpg", import.meta.url)
+    imageUrl: new URL("../../utility/images/earth.jpg", import.meta.url)
 });
 await texturesController.initialize();
 

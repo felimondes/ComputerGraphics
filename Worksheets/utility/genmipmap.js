@@ -63,26 +63,41 @@ export const generateMipmap = (() => {
         const pipeline = pipelineByFormat[texture.format];
 
         const encoder = device.createCommandEncoder();
-        for(let i = 1; i < texture.mipLevelCount; ++i)
+        for(let layer = 0; layer < texture.depthOrArrayLayers; ++layer)
         {
-            const bindGroup = device.createBindGroup({
-                layout: pipeline.getBindGroupLayout(0),
-                entries: [
-                    { binding: 0, resource: sampler },
-                    { binding: 1, resource: texture.createView({ baseMipLevel: i - 1, mipLevelCount: 1 })},
-                ],
-            });
-            const pass = encoder.beginRenderPass({
-                colorAttachments: [{
-                    view: texture.createView({ baseMipLevel: i, mipLevelCount: 1 }),
-                    loadOp: 'clear',
-                    storeOp: 'store',
-                }]
-            });
-            pass.setPipeline(pipeline);
-            pass.setBindGroup(0, bindGroup);
-            pass.draw(4);
-            pass.end();
+            for(let i = 1; i < texture.mipLevelCount; ++i)
+            {
+                const bindGroup = device.createBindGroup({
+                    layout: pipeline.getBindGroupLayout(0),
+                    entries: [
+                        { binding: 0, resource: sampler },
+                        { binding: 1, resource: texture.createView({
+                            dimension: '2d',
+                            baseMipLevel: i - 1,
+                            mipLevelCount: 1,
+                            baseArrayLayer: layer,
+                            arrayLayerCount: 1,
+                        })},
+                    ],
+                });
+                const pass = encoder.beginRenderPass({
+                    colorAttachments: [{
+                        view: texture.createView({
+                            dimension: '2d',
+                            baseMipLevel: i,
+                            mipLevelCount: 1,
+                            baseArrayLayer: layer,
+                            arrayLayerCount: 1,
+                        }),
+                        loadOp: 'clear',
+                        storeOp: 'store',
+                    }]
+                });
+                pass.setPipeline(pipeline);
+                pass.setBindGroup(0, bindGroup);
+                pass.draw(4);
+                pass.end();
+            }
         }
         const commandBuffer = encoder.finish();
         device.queue.submit([commandBuffer]);
