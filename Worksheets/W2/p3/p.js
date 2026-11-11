@@ -31,12 +31,35 @@ const clearColors = new Map([
     ["white", { r: 1, g: 1, b: 1, a: 1 }],
     ["blueish", { r: 0.3921, g: 0.5843, b: 0.9294, a: 1 }],
 ]);
-let clearColor = clearColors.get("blueish");
+let clearColor = clearColors.get("black");
 
 //Create buffer for points
 const point_size = 10 * (2 / canvas.height);
 var positions = [];
 var colors = [];
+[
+    {
+        vertexColors: ["black", "black", "red"],
+        points: [vec2(-0.8, -0.55), vec2(-0.2, -0.55), vec2(-0.5, 0.25)],
+    },
+    {
+        vertexColors: ["black", "black", "green"],
+        points: [vec2(-0.3, -0.55), vec2(0.3, -0.55), vec2(0, 0.25)],
+    },
+    {
+        vertexColors: ["black", "black", "blue"],
+        points: [vec2(0.2, -0.55), vec2(0.8, -0.55), vec2(0.5, 0.25)],
+    },
+].forEach(({ vertexColors, points }) =>
+    add_triangle(
+        positions,
+        colors,
+        points.map((point, index) => ({
+            point,
+            color: clearColors.get(vertexColors[index]),
+        }))
+    )
+);
 let drawingMode = "points";
 const pendingPoints = [];
 let pointBuffer = createVertexBuffer(device, positions);

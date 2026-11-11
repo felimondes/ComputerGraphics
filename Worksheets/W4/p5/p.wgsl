@@ -30,6 +30,7 @@ struct VertexInput {
 struct VertexOutput {
     @builtin(position) position: vec4f,
     @location(0) normal: vec3f,
+    @location(1) worldPosition: vec3f,
 };
 
 @vertex
@@ -43,12 +44,13 @@ fn main_vs(input: VertexInput) -> VertexOutput
     );
 
     var output: VertexOutput;
+    let worldPosition = (model * vec4f(input.position, 1.0)).xyz;
     output.position = uniforms.projection
                     * uniforms.view
-                    * model
-                    * vec4f(input.position, 1.0);
+                    * vec4f(worldPosition, 1.0);
 
     output.normal = (model * vec4f(input.position, 0.0)).xyz;
+    output.worldPosition = worldPosition;
     return output;
 }
 
@@ -57,7 +59,7 @@ fn main_fs(input: VertexOutput) -> @location(0) vec4f
 {
     let n = normalize(input.normal);
     let wi = normalize(-le);
-    let wo = normalize(uniforms.cameraPosition - input.position.xyz);
+    let wo = normalize(uniforms.cameraPosition - input.worldPosition);
     let kd = uniforms.kd * sphereDiffuseColor;
     let ka = kd;
     let ks = uniforms.ks * sphereSpecularColor;

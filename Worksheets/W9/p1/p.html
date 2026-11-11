@@ -1,0 +1,65 @@
+
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>W5 Part 4 - Suzanne Phong Shading</title>
+
+    <style>
+        .workspace {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        #my-canvas {
+            display: block;
+            max-width: 100%;
+            height: auto;
+        }
+
+        .controls {
+            width: 280px;
+            flex: 0 0 280px;
+        }
+
+        .control-row input {
+            display: block;
+            width: 100%;
+        }
+
+        @media (max-width: 820px) {
+            .workspace {
+                flex-direction: column;
+            }
+
+            .controls {
+                width: min(512px, 100%);
+                flex-basis: auto;
+            }
+        }
+    </style>
+
+    <script type="text/javascript" src="../../utility/MV.js"></script>
+    <script type="module" src="p.js"></script>
+</head>
+
+<body>
+    <script id="ground-wgsl" type="x-shader" src="ground.wgsl"></script>
+    <script id="objects-wgsl" type="x-shader" src="objects.wgsl"></script>
+    <script id="shadow-wgsl" type="x-shader" src="shadow.wgsl"></script>
+    <div class="workspace">
+
+        <canvas id="my-canvas" width="512" height="512">
+            Please use a browser that supports HTML5 canvas.
+        </canvas>
+
+        <aside class="controls">
+            <button id="toggle-motion" type="button">Start motion</button>
+            <button id="toggle-light-animation" type="button">Start light animation</button>
+            <div id="camera"></div>
+            <div id="lighting"></div>
+        </aside>
+    </div>
+</body>
+</html>

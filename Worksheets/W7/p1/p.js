@@ -20,14 +20,9 @@ let { canvas, context, canvasFormat } = configureCanvas(device);
 
 
 //Objects
-
-
-
 const objShape_2 = new Sphere(5);
 const obj_2_1 = new RenderObject(objShape_2, vec3(0, 0, 0));
 let objects_2 = [obj_2_1];
-
-
 
 const objectLists = [
     // { objects: objects_1, shape: objShape_1 },
@@ -35,7 +30,11 @@ const objectLists = [
 ];
 
 //Controls
-const cameraController = new CameraController(canvas);
+const cameraController = new CameraController(
+    canvas,
+    new URL("./camera.html", import.meta.url)
+);
+await cameraController.ready;
 
 
 //Setup layouts
@@ -69,10 +68,10 @@ let instanceBufferLayout = {
 
 //Setup buffers
 for (const batch of objectLists) {
+
     //Vertex Buffers
     let positions = batch.shape.getPositions();
     let normals = batch.shape.getNormals();
-
     const data = new Float32Array(positions.length + normals.length);
     for (let i = 0; i < positions.length / 4; i++) {
         const vertexOffset = i * 8;
@@ -90,8 +89,6 @@ for (const batch of objectLists) {
 
     //Instance buffers
     let modelMatrices = batch.objects.map(object => object.getM());
-
-
     const data1 = new Float32Array(
         modelMatrices.flatMap(model => Array.from(flatten(model)))
     );
@@ -117,9 +114,6 @@ for (const batch of objectLists) {
     batch.indexBuffer = indexBuffer;
 }
 
-
-
-
 //Prepare uniforms
 const uniforms = uniform.createBufferAndLayout(
     device,
@@ -129,7 +123,6 @@ const uniforms = uniform.createBufferAndLayout(
         { name: "eyePosition", type: "vec3" },
     ]
 );
-
 
 //MSAA
 const SAMPLE_COUNT = 4; //MultiSample anti aliasing MSAA (Make stairs more smooth)
@@ -153,8 +146,6 @@ const depthTexture = device.createTexture({
 const TOPOLOGY = "triangle-list"; //Vertices interpreted as triangles
 
 const pipeline = await createPipeline([vertexBufferLayout, instanceBufferLayout]);
-
-
 
 const cubeMapUrls = [
     "cm_left.png",

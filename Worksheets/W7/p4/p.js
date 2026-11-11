@@ -33,7 +33,11 @@ const objectLists = [
 ];
 
 //Controls
-const cameraController = new CameraController(canvas);
+const cameraController = new CameraController(
+    canvas,
+    new URL("./camera.html", import.meta.url)
+);
+await cameraController.ready;
 
 
 //Setup layouts

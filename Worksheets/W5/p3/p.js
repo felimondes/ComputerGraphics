@@ -1,5 +1,8 @@
+import { CameraController } from "../../controls/camera/camera.js";
+import { loadControlPanels } from "../../controls/controls.js";
 import { RenderObject } from "../../utility/RenderObject.js";
 import { OBJShape } from "../../utility/shapes/OBJShape.js";
+import { Sphere } from "../../utility/shapes/sphere.js";
 import * as uniform from "../../utility/uniform.js";
 import {
     configureCanvas,
@@ -13,15 +16,7 @@ import {
     createVertexBufferLayout
 } from "./mostlyClutter/index.js";
 
-
-import { CameraController } from "../../controls/camera/camera.js";
-import { loadControlPanels } from "../../controls/controls.js";
-import { LightingController } from "../../controls/lighting/lighting.js";
-import { SubdivisionController } from "../../controls/subdivisions/subdivisions.js";
-import { Sphere } from "../../utility/shapes/sphere.js";
 await loadControlPanels();
-
-
 
 //Connect to GPU
 const device = await createDevice();
@@ -33,21 +28,20 @@ const obj_1_1 = new RenderObject(objShape_1, vec3(0, 0, 0));
 let objects_1 = [obj_1_1];
 
 
-const objShape_2 = new Sphere(0);
+const objShape_2 = new Sphere(5);
 const obj_2_1 = new RenderObject(objShape_2, vec3(3, 0, 0));
 let objects_2 = [obj_2_1];
 
 const objectLists = [
     { objects: objects_1, shape: objShape_1 },
-    { objects: objects_2, shape: objShape_2 },
 ];
 
 //Controls
-const cameraController = new CameraController(canvas);
-const lightingController = new LightingController();
-new SubdivisionController(objectLists, device)
-
-
+const cameraController = new CameraController(
+    canvas,
+    new URL("./camera.html", import.meta.url)
+);
+await cameraController.ready;
 //Setup buffers
 for (const batch of objectLists) {
     batch.vertexBuffer = createVertexBuffer(
@@ -72,6 +66,7 @@ let eyePosition = vec3(
     cameraController.values.eyeY,
     cameraController.values.eyeZ
 );
+
 let up = vec3(0, 1, 0) //up = world up. Depending on convention either z or y is up. Here it is y.
 let V = lookAt(eyePosition, (obj_1_1.center), up);
 let P = perspective(45, canvas.width / canvas.height, 0.01, 100);
@@ -80,15 +75,8 @@ const uniforms = uniform.createBufferAndLayout(
     [
         { name: "V", type: "mat4" },
         { name: "P", type: "mat4" },
-        { name: "kd", type: "f32" },
-        { name: "ks", type: "f32" },
-        { name: "s", type: "f32" },
-        { name: "Le", type: "f32" },
-        { name: "La", type: "f32" },
-        { name: "eyePosition", type: "vec3" },
     ]
 );
-
 
 //MSAA
 const SAMPLE_COUNT = 4; //MultiSample anti aliasing MSAA (Make stairs more smooth)
@@ -122,6 +110,8 @@ const world = {
 
 animate();
 
+
+
 //Render
 function render() {
     const encoder = device.createCommandEncoder();
@@ -146,8 +136,6 @@ function render() {
     uniform.add(device, uniforms, {
         V: V,
         P: P,
-        ...lightingController.values,
-        eyePosition: eyePosition,
     });
 
     pass.setBindGroup(0, bindGroup);
@@ -163,7 +151,6 @@ function render() {
 }
 
 function animate(timestamp = 0) {
-
     const orbitState = cameraController.update(timestamp);
     if (orbitState) {
         eyePosition = orbitState.eyePosition;

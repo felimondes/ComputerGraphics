@@ -1,4 +1,4 @@
-import { createIndexBuffer } from "../../W5/p3/mostlyClutter/index.js";
+import { createIndexBuffer } from "../../W5/p4/mostlyClutter/index.js";
 import { RenderObject } from "../../utility/RenderObject.js";
 
 const MIN_SUBDIVISION = 0;
@@ -15,9 +15,7 @@ export class SubdivisionController {
         this.increaseButton = document.getElementById("increase-subdivision");
         this.levelLabel = document.getElementById("subdivision-level");
 
-        if (!this.decreaseButton || !this.increaseButton || !this.levelLabel) {
-            throw new Error("Subdivision controls are missing from the page.");
-        }
+    
 
         this.decreaseButton.addEventListener("click", () => {
             this.setLevel(this.level - 1);

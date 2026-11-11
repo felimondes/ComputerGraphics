@@ -28,12 +28,17 @@ const clearColors = new Map([
     ["white", { r: 1, g: 1, b: 1, a: 1 }],
     ["blueish", { r: 0.3921, g: 0.5843, b: 0.9294, a: 1 }],
 ]);
-let clearColor = clearColors.get("blueish");
+let clearColor = clearColors.get("black");
 
 //Create buffer for points
 const point_size = 10 * (2 / canvas.height);
 var positions = [];
 var colors = [];
+[
+    { point: vec2(-0.4, 0.25), color: clearColors.get("red") },
+    { point: vec2(0, 0), color: clearColors.get("green") },
+    { point: vec2(0.4, -0.25), color: clearColors.get("yellow") },
+].forEach(({ point, color }) => add_point(positions, colors, point, point_size, color));
 let pointBuffer = createVertexBuffer(device, positions);
 let pointBufferLayout = createVertexBufferLayout(0, "vec2", "float32x2");
 

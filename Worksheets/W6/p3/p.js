@@ -39,8 +39,14 @@ const objectLists = [
 ];
 
 //Controls
-const cameraController = new CameraController(canvas);
-const lightingController = new LightingController();
+const cameraController = new CameraController(
+    canvas,
+    new URL("./camera.html", import.meta.url)
+);
+const lightingController = new LightingController(
+    new URL("./lighting.html", import.meta.url)
+);
+await Promise.all([cameraController.ready, lightingController.ready]);
 
 
 //Setup layouts

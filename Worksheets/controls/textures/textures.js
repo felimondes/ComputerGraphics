@@ -82,6 +82,8 @@ export class TexturesController {
                 : null;
     }
 
+
+    
     async initializeCubeMap() {
         this.cubeMapImages = await Promise.all(this.cubeMapUrls.map(async (imageUrl) => {
             const response = await fetch(imageUrl);
@@ -149,8 +151,6 @@ export class TexturesController {
         this.updateTextureSettings();
         this.controls.addEventListener("change", () => this.updateTextureSettings());
     }
-
-
 
     updateTextureSettings() {
         const mipmapEnabled = this.mipmapEnabledControl.checked;

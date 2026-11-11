@@ -24,6 +24,11 @@ let shaderModule = await createShaderModule("wgsl");
 //Create buffer for points
 const point_size = 10 * (2 / canvas.height);
 var positions = [];
+[
+    vec2(-0.45, 0.35),
+    vec2(0, 0),
+    vec2(0.4, -0.3),
+].forEach((point) => add_point(positions, point, point_size));
 let vertexBuffer = createVertexBuffer(device, positions);
 let vertexBufferLayout = createVertexBufferLayout();
 
