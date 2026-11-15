@@ -40,10 +40,6 @@ export class Rectangle extends Shape {
         return this.getCenterFromPositions();
     }
 
-    getBoundingRadius() {
-        return ""
-    }
-
     isSubdivisble() {
         return false;
     }

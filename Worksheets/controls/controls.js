@@ -3,6 +3,9 @@ export async function loadControlPanels() {
         ["camera", "./camera/camera.html"],
         ["subdivisions", "./subdivisions/subdivisions.html"],
         ["lighting", "./lighting/lighting.html"],
+        ["spawning", "./spawning/spawning.html"],
+        ["bounds", "./bounds/bounds.html"],
+        ["scene", "./scene/scene.html"],
         ["textures", "./textures/textures.html"]
     ];
 

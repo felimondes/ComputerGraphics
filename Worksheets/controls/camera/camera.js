@@ -35,7 +35,7 @@ export class CameraController {
 
         this.canvas = canvas;
         this.up = vec3(0, 1, 0);
-        this.at = default_at
+        this.at = default_at;
         this.pointerLockEnabled = options.pointerLock ?? false;
         this.keyboardEnabled = options.keyboard ?? false;
         this.pointerLocked = false;
@@ -231,6 +231,64 @@ export class CameraController {
             this.at[1] - eyePosition[1],
             this.at[2] - eyePosition[2]
         );
+    }
+
+    setView(eyePosition, lookAtPoint) {
+        const eye = this.validatePosition(eyePosition, "eye position");
+        const target = this.validatePosition(lookAtPoint, "look-at point");
+        const distance = Math.hypot(
+            target[0] - eye[0],
+            target[1] - eye[1],
+            target[2] - eye[2]
+        );
+        if (distance <= Number.EPSILON) {
+            throw new RangeError("Eye position and look-at point must be different.");
+        }
+
+        const viewMatrix = lookAt(eye, target, this.up);
+        if (!viewMatrix.flat().every(Number.isFinite)) {
+            throw new Error("lookAt produced an invalid view matrix.");
+        }
+
+        this.at = target;
+        this.eyePosition = eye;
+        this.viewDistance = distance;
+        this.setDirectionFromTarget(eye);
+        this.hasUserOrientation = false;
+        this.V = viewMatrix;
+        this.P = perspective(45, this.canvas.width / this.canvas.height, 0.01, 100);
+
+        for (const [index, key] of ["eyeX", "eyeY", "eyeZ"].entries()) {
+            const input = this.controls.querySelector(`[data-slider-key="${key}"]`);
+            this.values[key] = eye[index];
+            if (input) {
+                if (input.min !== "" && eye[index] < Number(input.min)) {
+                    input.min = String(eye[index]);
+                }
+                if (input.max !== "" && eye[index] > Number(input.max)) {
+                    input.max = String(eye[index]);
+                }
+                input.value = String(eye[index]);
+                this.updateOutput(
+                    this.controls.querySelector(`[data-slider-output="${key}"]`),
+                    eye[index],
+                    input.step
+                );
+            }
+        }
+
+        return this;
+    }
+
+    validatePosition(position, name) {
+        if (!position || position.length !== 3) {
+            throw new TypeError(`${name} must be a three-dimensional vector.`);
+        }
+        const coordinates = Array.from(position);
+        if (!coordinates.every(Number.isFinite)) {
+            throw new TypeError(`${name} must contain only finite numbers.`);
+        }
+        return vec3(...coordinates);
     }
 
     setDirectionFromTarget(eyePosition) {

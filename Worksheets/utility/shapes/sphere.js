@@ -89,10 +89,6 @@ export class Sphere extends Shape {
         return this.getCenterFromPositions();
     }
 
-    getBoundingRadius() {
-        return 1;
-    }
-
     isSubdivisble() {
         return true;
     }

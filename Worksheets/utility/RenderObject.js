@@ -13,19 +13,20 @@ export class RenderObject {
         this.scalingFactor = vec3(1, 1, 1);
     }
 
-    ifOutOfBoundsFlipVelocity(nextPosition, bounds, world, velocity) {
+    ifOutOfBoundsFlipVelocity(nextPosition, radius, world, velocity) {
         for (let axis = 0; axis < 3; axis++) {
-            if (nextPosition[axis] + bounds.max[axis] > world.max[axis]) {
-                nextPosition[axis] = world.max[axis] - bounds.max[axis];
-
+            if (radius * 2 > world.max[axis] - world.min[axis]) {
+                throw new RangeError("Object bounding volume does not fit inside the world bounds.");
+            }
+            if (nextPosition[axis] + radius > world.max[axis]) {
+                nextPosition[axis] = world.max[axis] - radius;
                 if (velocity[axis] > 0) {
                     velocity[axis] *= -1;
                 }
             }
 
-            if (nextPosition[axis] + bounds.min[axis] < world.min[axis]) {
-                nextPosition[axis] = world.min[axis] - bounds.min[axis];
-
+            if (nextPosition[axis] - radius < world.min[axis]) {
+                nextPosition[axis] = world.min[axis] + radius;
                 if (velocity[axis] < 0) {
                     velocity[axis] *= -1;
                 }
@@ -49,45 +50,20 @@ export class RenderObject {
 
         let velocity = nextVelocity;
 
-        const localBounds = this.shape.getBoundingBox?.();
-        const radius = this.shape.getBoundingRadius();
-        const bounds = localBounds
-            ? localBounds
-            : {
-                min: [-radius, -radius, -radius],
-                max: [radius, radius, radius],
-            };
-        const rotation = mult(
-            rotateZ(this.rotation[2]),
-            mult(rotateY(this.rotation[1]), rotateX(this.rotation[0]))
+        const currentVolume = this.getBoundingVolume();
+        const worldVolumeCenter = add(
+            currentVolume.center,
+            subtract(nextPosition, this.center)
         );
-        const transform = mult(rotation, scalem(this.scalingFactor));
-        const transformedBounds = {
-            min: [Infinity, Infinity, Infinity],
-            max: [-Infinity, -Infinity, -Infinity],
-        };
-        for (const x of [bounds.min[0], bounds.max[0]]) {
-            for (const y of [bounds.min[1], bounds.max[1]]) {
-                for (const z of [bounds.min[2], bounds.max[2]]) {
-                    const point = mult(transform, vec4(x, y, z, 1));
-                    for (let axis = 0; axis < 3; axis++) {
-                        transformedBounds.min[axis] = Math.min(
-                            transformedBounds.min[axis],
-                            point[axis]
-                        );
-                        transformedBounds.max[axis] = Math.max(
-                            transformedBounds.max[axis],
-                            point[axis]
-                        );
-                    }
-                }
-            }
-        }
         this.ifOutOfBoundsFlipVelocity(
-            nextPosition,
-            transformedBounds,
+            worldVolumeCenter,
+            currentVolume.radius,
             world,
             velocity
+        );
+        nextPosition = subtract(
+            worldVolumeCenter,
+            subtract(currentVolume.center, this.center)
         );
 
         this.velocity = velocity;
@@ -96,6 +72,31 @@ export class RenderObject {
             this.rotation,
             mult(this.angularVelocity, dt_v)
         );
+    }
+
+    getBoundingVolume() {
+        const volume = this.shape.getBoundingVolume();
+        if (!volume || volume.type !== "sphere") {
+            throw new TypeError("RenderObject requires a shape with a spherical bounding volume.");
+        }
+
+        const transformedCenter = mult(
+            this.getM(),
+            vec4(...volume.center, 1)
+        );
+        return {
+            type: "sphere",
+            center: vec3(
+                transformedCenter[0],
+                transformedCenter[1],
+                transformedCenter[2]
+            ),
+            radius: volume.radius * Math.max(
+                Math.abs(this.scalingFactor[0]),
+                Math.abs(this.scalingFactor[1]),
+                Math.abs(this.scalingFactor[2])
+            ),
+        };
     }
 
     getM() {
