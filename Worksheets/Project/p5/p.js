@@ -13,18 +13,19 @@ import {
 
 import { BoundsController } from "../../controls/bounds/bounds.js";
 import { CameraController } from "../../controls/camera/camera.js";
-import { SweepAndPrune } from "../../controls/collision/sweepAndPrune.js";
 import { loadControlPanels } from "../../controls/controls.js";
 import { LightingController } from "../../controls/lighting/lighting.js";
 import { SceneController } from "../../controls/scene/scene.js";
 import { SpawningController } from "../../controls/spawning/spawning.js";
-import { markBoundingSphereCollisions } from "./collision.js";
+import { SweepAndPrune } from "../../utility/collision/sweepAndPrune.js";
 await loadControlPanels();
 
 
+const DIMENSIONS = 3
+const GRID = 0
 const world = {
-    min: vec3(-3, -3, -3),
-    max: vec3(3, 3, 3)
+    min: vec3(-10, -10, -10),
+    max: vec3(10, 10, 10)
 };
 
 
@@ -51,23 +52,16 @@ const spawningController = new SpawningController(
         render();
     },
     {
-        dimensions: 2,
-        shapeIds: ["circle", "quad"],
+        dimensions: DIMENSIONS,
+        shapeIds: ["circle", "quad",  "suzanne", "teapot"],
         radiusRange: [0.5, 1],
         velocityLimit: 0.5,
         defaultCount: 3,
         initialObjects: [
             {
-                shapeId: "quad",
-                center: [-2, 0, 0],
-                scalingFactor: [0.5, 0.5, 0.5],
-                velocity: [0.25, 0, 0],
-            },
-            {
-                shapeId: "quad",
-                center: [2, 0, 0],
-                scalingFactor: [0.25, 0.25, 0.25],
-                velocity: [-0.25, 0, 0],
+                shapeId: "teapot",
+                center: [0, 0, 0],
+                scalingFactor: [2, 2, 2],
             },
         ],
     }
@@ -88,7 +82,7 @@ await Promise.all([
     lightingController.ready,
     spawningController.ready,
 ]);
-cameraController.setView(vec3(0, 0, 9), vec3(0, 0, 0));
+cameraController.setView(vec3(0, 8, 18), vec3(0, 2, 0));
 const sweepAndPrune = new SweepAndPrune(3);
 const objectLists = spawningController.objectLists;
 
@@ -261,8 +255,10 @@ const gridBindGroup = device.createBindGroup({
     }],
 });
 
+
+
 const boundsController = new BoundsController(device, canvasFormat, {
-    dimensions: 2,
+    dimensions: DIMENSIONS,
     sampleCount: SAMPLE_COUNT,
     onChange: () => render(),
 });
@@ -273,22 +269,57 @@ requestAnimationFrame(animate);
 
 function createWorldGrid(bounds, spacing) {
     const vertices = [];
-    for (
-        let x = bounds.min[0];
-        x <= bounds.max[0];
-        x += spacing
-    ) {
-        vertices.push(x, bounds.min[1], 0, x, bounds.max[1], 0);
-    }
-    for (
-        let y = bounds.min[1];
-        y <= bounds.max[1];
-        y += spacing
-    ) {
-        vertices.push(bounds.min[0], y, 0, bounds.max[0], y, 0);
+    const axes = ["x", "y", "z"];
+
+
+    if (DIMENSIONS == 3) {
+        for (const fixedAxis of axes) {
+            const fixedValue = bounds.min[axes.indexOf(fixedAxis)];
+            const varyingAxes = axes.filter(axis => axis !== fixedAxis);
+            const fixedPosition = [0, 0, 0];
+            fixedPosition[axes.indexOf(fixedAxis)] = fixedValue;
+
+            for (const axis of varyingAxes) {
+                const axisIndex = axes.indexOf(axis);
+                const otherAxis = varyingAxes.find(candidate => candidate !== axis);
+                const otherIndex = axes.indexOf(otherAxis);
+                const start = bounds.min[axisIndex];
+                const end = bounds.max[axisIndex];
+
+                for (let coordinate = start; coordinate <= end; coordinate += spacing) {
+                    const first = [...fixedPosition];
+                    const second = [...fixedPosition];
+                    first[axisIndex] = coordinate;
+                    second[axisIndex] = coordinate;
+                    first[otherIndex] = bounds.min[otherIndex];
+                    second[otherIndex] = bounds.max[otherIndex];
+                    vertices.push(...first, ...second);
+                }
+            }
+        }
+
+        return new Float32Array(vertices);
+    } else {
+        const vertices = [];
+        for (
+            let x = bounds.min[0];
+            x <= bounds.max[0];
+            x += spacing
+        ) {
+            vertices.push(x, bounds.min[1], 0, x, bounds.max[1], 0);
+        }
+        for (
+            let y = bounds.min[1];
+            y <= bounds.max[1];
+            y += spacing
+        ) {
+            vertices.push(bounds.min[0], y, 0, bounds.max[0], y, 0);
+        }
+
+        return new Float32Array(vertices);
+
     }
 
-    return new Float32Array(vertices);
 }
 
 //Render
@@ -310,11 +341,14 @@ function render() {
         },
     });
 
+
     uniform.add(device, gridUniforms, { V, P });
     pass.setPipeline(gridPipeline);
     pass.setBindGroup(0, gridBindGroup);
     pass.setVertexBuffer(0, gridVertexBuffer);
-    pass.draw(gridPositions.length / 3);
+    if (GRID) {
+        pass.draw(gridPositions.length / 3);
+    }
 
     pass.setPipeline(objectPipeline);
 
@@ -387,8 +421,7 @@ function animate(timestamp = 0) {
 
 function updateCollisionState() {
     const objects = objectLists.flatMap(batch => batch.objects);
-    const { collidingPairs } = sweepAndPrune.update(objects);
-    return markBoundingSphereCollisions(objects, collidingPairs);
+    sweepAndPrune.update(objects);
 }
 
 async function createPipeline(layouts) {
@@ -422,7 +455,7 @@ async function createPipeline(layouts) {
         primitive: {
             topology: TOPOLOGY,
             frontFace: "ccw", // options { "ccw", "cw" }
-            cullMode: "back", // options { "none", "front", "back" }
+            cullMode: "none", // options { "none", "front", "back" }
         },
     });
     return pipeline

@@ -1,5 +1,77 @@
 import { principalComponents } from "../linalg.js";
 
+const EPSILON = 1e-6;
+
+export function multiplyTransforms(a, b) {
+    const result = [];
+    for (let i = 0; i < 3; i++) {
+        result[i] = [];
+        for (let j = 0; j < 4; j++) {
+            result[i][j] = a[i][0] * b[0][j] + a[i][1] * b[1][j] +
+                a[i][2] * b[2][j] + (j === 3 ? a[i][3] : 0);
+        }
+    }
+    result.push([0, 0, 0, 1]);
+    return result;
+}
+
+function inverseTransform(matrix) {
+    const [a, b, c] = matrix[0];
+    const [d, e, f] = matrix[1];
+    const [g, h, i] = matrix[2];
+    const det = a * (e * i - f * h) - b * (d * i - f * g) + c * (d * h - e * g);
+    if (det === 0 || !Number.isFinite(det)) return null;
+    const inverse = [
+        [(e * i - f * h) / det, (c * h - b * i) / det, (b * f - c * e) / det],
+        [(f * g - d * i) / det, (a * i - c * g) / det, (c * d - a * f) / det],
+        [(d * h - e * g) / det, (b * g - a * h) / det, (a * e - b * d) / det],
+    ];
+    for (let row = 0; row < 3; row++) {
+        inverse[row][3] = -inverse[row][0] * matrix[0][3] -
+            inverse[row][1] * matrix[1][3] - inverse[row][2] * matrix[2][3];
+    }
+    inverse.push([0, 0, 0, 1]);
+    return inverse;
+}
+
+function boxFromTransform(matrix, extents) {
+    const directions = [
+        [matrix[0][0], matrix[1][0], matrix[2][0]],
+        [matrix[0][1], matrix[1][1], matrix[2][1]],
+        [matrix[0][2], matrix[1][2], matrix[2][2]],
+    ];
+    return {
+        center: [matrix[0][3], matrix[1][3], matrix[2][3]],
+        directions,
+        extents,
+        normals: [
+            cross(directions[1], directions[2]),
+            cross(directions[2], directions[0]),
+            cross(directions[0], directions[1]),
+        ],
+    };
+}
+
+function separatedOnAxis(a, b, axis, inverseA) {
+    const lengthSquared = dot(axis, axis);
+    if (lengthSquared === 0) return false;
+    let radius = 0;
+    for (let i = 0; i < 3; i++) {
+        radius += a.extents[i] * Math.abs(dot(a.directions[i], axis));
+        radius += b.extents[i] * Math.abs(dot(b.directions[i], axis));
+    }
+    const [x, y, z] = axis;
+    const distance = Math.abs(dot(subtract(b.center, a.center), axis));
+    const tolerance = inverseA
+        ? EPSILON * Math.hypot(
+            inverseA[0][0] * x + inverseA[1][0] * y + inverseA[2][0] * z,
+            inverseA[0][1] * x + inverseA[1][1] * y + inverseA[2][1] * z,
+            inverseA[0][2] * x + inverseA[1][2] * y + inverseA[2][2] * z
+        )
+        : EPSILON * Math.sqrt(lengthSquared);
+    return distance > radius + tolerance;
+}
+
 export class OBB {
     constructor(center, axes, extents) {
         this.center = center;
@@ -8,136 +80,59 @@ export class OBB {
     }
 
     static fromPoints(positions) {
-        if (positions.length % 4 !== 0 || positions.length === 0) {
-            throw new Error("Points must be vec4 positions.");
-        }
-
-        const count = positions.length / 4;
-        const mean = [0, 0, 0];
-        for (let i = 0; i < count; i++) {
-            for (let c = 0; c < 3; c++) {
-                mean[c] += positions[i * 4 + c] / count;
+        const { mean, axes } = principalComponents(positions);
+        const min = [Infinity, Infinity, Infinity];
+        const max = [-Infinity, -Infinity, -Infinity];
+        for (let i = 0; i < positions.length; i += 4) {
+            const point = subtract([positions[i], positions[i + 1], positions[i + 2]], mean);
+            for (let axis = 0; axis < 3; axis++) {
+                const projection = dot(point, axes[axis]);
+                min[axis] = Math.min(min[axis], projection);
+                max[axis] = Math.max(max[axis], projection);
             }
         }
-
-        const { axes, eigenvalues } = principalComponents(positions, mean);
-
-        const projections = [[], [], []];
-        for (let i = 0; i < count; i++) {
-            const p = [
-                positions[i * 4],
-                positions[i * 4 + 1],
-                positions[i * 4 + 2],
-            ];
-            const diff = [p[0] - mean[0], p[1] - mean[1], p[2] - mean[2]];
-
-            for (let axisIndex = 0; axisIndex < 3; axisIndex++) {
-                const axis = axes[axisIndex];
-                const proj = diff[0] * axis[0] + diff[1] * axis[1] + diff[2] * axis[2];
-                projections[axisIndex].push(proj);
-            }
-        }
-
-        // BUG FIX: Create a fresh center variable instead of mutating mean
-        const center = [mean[0], mean[1], mean[2]];
+        const center = [...mean];
         const extents = [];
-        
-        for (let axisIndex = 0; axisIndex < 3; axisIndex++) {
-            const min = Math.min(...projections[axisIndex]);
-            const max = Math.max(...projections[axisIndex]);
-            const extent = (max - min) / 2;
-            extents.push(extent);
-            const mid = (max + min) / 2;
-            const offset = axes[axisIndex].map(c => c * mid);
-            center[0] += offset[0];
-            center[1] += offset[1];
-            center[2] += offset[2];
+        for (let axis = 0; axis < 3; axis++) {
+            extents.push((max[axis] - min[axis]) / 2);
+            const midpoint = (max[axis] + min[axis]) / 2;
+            for (let i = 0; i < 3; i++) center[i] += axes[axis][i] * midpoint;
         }
-
         return new OBB(center, axes, extents);
     }
 
+    getTransform() {
+        return [
+            [this.axes[0][0], this.axes[1][0], this.axes[2][0], this.center[0]],
+            [this.axes[0][1], this.axes[1][1], this.axes[2][1], this.center[1]],
+            [this.axes[0][2], this.axes[1][2], this.axes[2][2], this.center[2]],
+            [0, 0, 0, 1],
+        ];
+    }
+
     static testOverlap(obbA, matrixA, obbB, matrixB) {
-        const relativeT = SAT(obbA, obbB, matrixA, matrixB);
-        return relativeT !== null;
-    }
-}
-
-function SAT(obbA, obbB, matrixA, matrixB) {
-    const relativeRotation = getRelativeRotation(matrixA, matrixB);
-    const relativeTranslation = getRelativeTranslation(matrixA, matrixB);
-
-    const axes = [
-        ...obbA.axes,
-        ...obbB.axes.map(axis => {
-            const rotated = [
-                axis[0] * relativeRotation[0][0] + axis[1] * relativeRotation[0][1] + axis[2] * relativeRotation[0][2],
-                axis[0] * relativeRotation[1][0] + axis[1] * relativeRotation[1][1] + axis[2] * relativeRotation[1][2],
-                axis[0] * relativeRotation[2][0] + axis[1] * relativeRotation[2][1] + axis[2] * relativeRotation[2][2],
-            ];
-            return rotated;
-        }),
-    ];
-
-    for (let i = 0; i < 3; i++) {
-        for (let j = 0; j < 3; j++) {
-            const axis = [
-                obbA.axes[i][1] * obbB.axes[j][2] - obbA.axes[i][2] * obbB.axes[j][1],
-                obbA.axes[i][2] * obbB.axes[j][0] - obbA.axes[i][0] * obbB.axes[j][2],
-                obbA.axes[i][0] * obbB.axes[j][1] - obbA.axes[i][1] * obbB.axes[j][0],
-            ];
-            const len = Math.sqrt(axis[0] * axis[0] + axis[1] * axis[1] + axis[2] * axis[2]);
-            if (len < 1e-6) {
-                continue;
-            }
-            axis[0] /= len;
-            axis[1] /= len;
-            axis[2] /= len;
-            axes.push(axis);
-        }
-    }
-
-    for (const axis of axes) {
-        const projA = projectBox(obbA, axis);
-        const projB = projectBox(obbB, axis, relativeRotation, relativeTranslation);
-
-        if (projA.max < projB.min - 1e-6 || projB.max < projA.min - 1e-6) {
-            return null;
-        }
-    }
-
-    return { rotation: relativeRotation, translation: relativeTranslation };
-}
-
-function getRelativeRotation(matrixA, matrixB) {
-    const rotation = [];
-    for (let i = 0; i < 3; i++) {
-        rotation[i] = [];
-        for (let j = 0; j < 3; j++) {
-            rotation[i][j] = matrixA[i][j] * matrixB[i][j] +
-                             matrixA[i][j] * matrixB[i][j] +
-                             matrixA[i][j] * matrixB[i][j];
-        }
-    }
-    return rotation;
-}
-
-function getRelativeTranslation(matrixA, matrixB) {
-    return [
-        matrixB[0][3] - matrixA[0][3],
-        matrixB[1][3] - matrixA[1][3],
-        matrixB[2][3] - matrixA[2][3],
-    ];
-}
-
-function projectBox(obb, axis) {
-    const projCenter = obb.center[0] * axis[0] + obb.center[1] * axis[1] + obb.center[2] * axis[2];
-    let radius = 0;
-    for (let i = 0; i < 3; i++) {
-        const axisProj = Math.abs(
-            obb.axes[i][0] * axis[0] + obb.axes[i][1] * axis[1] + obb.axes[i][2] * axis[2]
+        return OBB.testTransformedOverlap(
+            obbA, multiplyTransforms(matrixA, obbA.getTransform()),
+            obbB, multiplyTransforms(matrixB, obbB.getTransform())
         );
-        radius += obb.extents[i] * axisProj;
     }
-    return { min: projCenter - radius, max: projCenter + radius };
+
+    static testTransformedOverlap(obbA, matrixA, obbB, matrixB) {
+        const inverseA = inverseTransform(matrixA);
+        // Singular object scales cannot be inverted; test those boxes in world space.
+        const a = boxFromTransform(inverseA ? [
+            [1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1],
+        ] : matrixA, obbA.extents);
+        const b = boxFromTransform(inverseA ? multiplyTransforms(inverseA, matrixB) : matrixB, obbB.extents);
+        for (let i = 0; i < 3; i++) {
+            if (separatedOnAxis(a, b, a.normals[i], inverseA) ||
+                separatedOnAxis(a, b, b.normals[i], inverseA)) return false;
+        }
+        for (const directionA of a.directions) {
+            for (const directionB of b.directions) {
+                if (separatedOnAxis(a, b, cross(directionA, directionB), inverseA)) return false;
+            }
+        }
+        return true;
+    }
 }

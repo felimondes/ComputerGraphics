@@ -13,21 +13,22 @@ import {
 
 import { BoundsController } from "../../controls/bounds/bounds.js";
 import { CameraController } from "../../controls/camera/camera.js";
-import { SweepAndPrune } from "../../controls/collision/sweepAndPrune.js";
 import { loadControlPanels } from "../../controls/controls.js";
 import { LightingController } from "../../controls/lighting/lighting.js";
 import { SceneController } from "../../controls/scene/scene.js";
 import { SpawningController } from "../../controls/spawning/spawning.js";
-import { markBoundingSphereCollisions } from "./collision.js";
+import { markSATCollisions } from "../../utility/collision/narrowPhase.js";
+import { SweepAndPrune } from "../../utility/collision/sweepAndPrune.js";
 await loadControlPanels();
 
 
 const DIMENSIONS = 3
-const GRID = 0
+const GRID = 1
 const world = {
-    min: vec3(-10, -10, -10),
-    max: vec3(10, 10, 10)
+    min: vec3(-5, -5, -5),
+    max: vec3(5, 5, 5)
 };
+
 
 
 //Connect to GPU
@@ -38,11 +39,12 @@ let { canvas, context, canvasFormat } = configureCanvas(device);
 //Controls
 const cameraController = new CameraController(
     canvas,
-    new URL("./camera.html", import.meta.url)
+    new URL("./camera.html", import.meta.url),
 );
 const lightingController = new LightingController(
     new URL("./lighting.html", import.meta.url)
 );
+
 const spawningController = new SpawningController(
     world,
     () => {
@@ -54,17 +56,11 @@ const spawningController = new SpawningController(
     },
     {
         dimensions: DIMENSIONS,
-        shapeIds: ["circle", "quad", "tessellated-2d", "suzanne", "teapot"],
+        shapeIds: ["circle", "quad",  "suzanne", "teapot"],
         radiusRange: [0.5, 1],
         velocityLimit: 0.5,
         defaultCount: 3,
-        initialObjects: [
-            {
-                shapeId: "teapot",
-                center: [0, 0, 0],
-                scalingFactor: [2, 2, 2],
-            },
-        ],
+        shareOBBTrees: true,
     }
 );
 const sceneController = new SceneController(isRunning => {
@@ -75,15 +71,12 @@ const sceneController = new SceneController(isRunning => {
 
 
 
-
-
-
 await Promise.all([
     cameraController.ready,
     lightingController.ready,
     spawningController.ready,
 ]);
-cameraController.setView(vec3(0, 0, 9), vec3(0, 0, 0));
+cameraController.setView(vec3(7, 7, 15), vec3(0, -1.5, 0));
 const sweepAndPrune = new SweepAndPrune(3);
 const objectLists = spawningController.objectLists;
 
@@ -266,6 +259,15 @@ const boundsController = new BoundsController(device, canvasFormat, {
 
 spawningController.activate();
 
+const fpsDisplay = document.getElementById("fps");
+let fpsStartTime = null;
+let fpsFrameCount = 0;
+document.addEventListener("visibilitychange", () => {
+    fpsStartTime = null;
+    fpsFrameCount = 0;
+    fpsDisplay.textContent = "--";
+});
+
 requestAnimationFrame(animate);
 
 function createWorldGrid(bounds, spacing) {
@@ -377,6 +379,18 @@ function render() {
 }
 
 function animate(timestamp = 0) {
+    if (fpsStartTime === null) {
+        fpsStartTime = timestamp;
+    } else {
+        fpsFrameCount++;
+        const elapsed = timestamp - fpsStartTime;
+        if (elapsed >= 500) {
+            fpsDisplay.textContent = String(Math.round(fpsFrameCount * 1000 / elapsed));
+            fpsStartTime = timestamp;
+            fpsFrameCount = 0;
+        }
+    }
+
     const orbitState = cameraController.update(timestamp);
     if (orbitState) {
         eyePosition = orbitState.eyePosition;
@@ -423,7 +437,7 @@ function animate(timestamp = 0) {
 function updateCollisionState() {
     const objects = objectLists.flatMap(batch => batch.objects);
     const { collidingPairs } = sweepAndPrune.update(objects);
-    return markBoundingSphereCollisions(objects, collidingPairs);
+    return markSATCollisions(objects, collidingPairs);
 }
 
 async function createPipeline(layouts) {

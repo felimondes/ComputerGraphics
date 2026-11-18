@@ -1,10 +1,9 @@
 import { RenderObject } from "../../utility/RenderObject.js";
+import { OBBTree } from "../../utility/collision/OBBTree.js";
 import { OBJShape } from "../../utility/shapes/OBJShape.js";
 import { Circle } from "../../utility/shapes/circle.js";
 import { Quad } from "../../utility/shapes/quad.js";
 import { Sphere } from "../../utility/shapes/sphere.js";
-import { Tessellated2D } from "../../utility/shapes/tessellated2D.js";
-import { OBBTree } from "../../utility/collision/OBBTree.js";
 
 export class SpawningController {
     constructor(world, onSpawn, {
@@ -12,10 +11,10 @@ export class SpawningController {
         shapeIds = ["sphere", "circle", "suzanne", "teapot", "quad"],
         radiusRange = [50, 50],
         velocityLimit = 2,
-        angularVelocityLimit = 0,
+        angularVelocityLimit = 45,
         defaultCount = 3,
         initialObjects = [],
-        createOBBTree = (positions, indices) => new OBBTree(positions, indices),
+        shareOBBTrees = false,
     } = {}) {
         this.world = world;
         this.onSpawn = onSpawn;
@@ -26,7 +25,7 @@ export class SpawningController {
         this.angularVelocityLimit = angularVelocityLimit;
         this.defaultCount = defaultCount;
         this.initialObjects = initialObjects;
-        this.createOBBTree = createOBBTree;
+        this.obbTrees = shareOBBTrees ? new WeakMap() : null;
         this.controls = document.getElementById("spawning");
         if (!this.controls) {
             throw new Error("Spawning controls are missing from the page.");
@@ -52,7 +51,6 @@ export class SpawningController {
             { id: "suzanne", label: "Suzanne", objects: [], shape: suzanne },
             { id: "teapot", label: "Teapot", objects: [], shape: teapot },
             { id: "quad", label: "Quad", objects: [], shape: new Quad() },
-            { id: "tessellated-2d", label: "Tessellated 2D", objects: [], shape: new Tessellated2D() },
         ];
         this.objectLists = availableShapes.filter(batch =>
             this.shapeIds.has(batch.id)
@@ -178,11 +176,7 @@ export class SpawningController {
             ));
         
         try {
-            const positions = shape.getPositions();
-            const indices = shape.getIndices();
-            if (positions && indices) {
-                object.obbTree = this.createOBBTree(positions, indices);
-            }
+            this.assignOBBTree(object);
         } catch (e) {
             console.warn("Could not build OBBTree for spawned object:", e.message);
         }
@@ -204,16 +198,29 @@ export class SpawningController {
         object.scalingFactor = vec3(...scalingFactor);
         
         try {
-            const positions = shape.getPositions();
-            const indices = shape.getIndices();
-            if (positions && indices) {
-                object.obbTree = this.createOBBTree(positions, indices);
-            }
+            this.assignOBBTree(object);
         } catch (e) {
             console.warn("Could not build OBBTree for initial object:", e.message);
         }
         
         return object;
+    }
+
+    assignOBBTree(object) {
+        const shape = object.shape;
+        const positions = shape.getPositions();
+        const indices = shape.getIndices();
+        if (!positions || !indices) {
+            return;
+        }
+
+        // Shared trees assume the shape's geometry arrays are not mutated in place.
+        let tree = this.obbTrees?.get(shape);
+        if (!tree || tree.positions !== positions || tree.indices !== indices) {
+            tree = new OBBTree(positions, indices);
+            this.obbTrees?.set(shape, tree);
+        }
+        object.obbTree = tree;
     }
 }
 

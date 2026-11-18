@@ -13,22 +13,22 @@ import {
 
 import { BoundsController } from "../../controls/bounds/bounds.js";
 import { CameraController } from "../../controls/camera/camera.js";
-import { SweepAndPrune } from "../../controls/collision/sweepAndPrune.js";
 import { loadControlPanels } from "../../controls/controls.js";
 import { LightingController } from "../../controls/lighting/lighting.js";
 import { SceneController } from "../../controls/scene/scene.js";
 import { SpawningController } from "../../controls/spawning/spawning.js";
-import { markSATCollisions } from "./narrowPhase.js";
-import { OBBTree } from "./obbTree.js";
+import { markSATCollisions } from "../../utility/collision/narrowPhase.js";
+import { SweepAndPrune } from "../../utility/collision/sweepAndPrune.js";
 await loadControlPanels();
 
 
 const DIMENSIONS = 3
-const GRID = 1
+const GRID = 0
 const world = {
-    min: vec3(-2, -2, -2),
-    max: vec3(2, 2, 2)
+    min: vec3(-10, -10, -10),
+    max: vec3(10, 10, 10)
 };
+
 
 
 //Connect to GPU
@@ -39,11 +39,12 @@ let { canvas, context, canvasFormat } = configureCanvas(device);
 //Controls
 const cameraController = new CameraController(
     canvas,
-    new URL("./camera.html", import.meta.url)
+    new URL("./camera.html", import.meta.url),
 );
 const lightingController = new LightingController(
     new URL("./lighting.html", import.meta.url)
 );
+
 const spawningController = new SpawningController(
     world,
     () => {
@@ -55,17 +56,22 @@ const spawningController = new SpawningController(
     },
     {
         dimensions: DIMENSIONS,
-        shapeIds: ["circle", "quad", "tessellated-2d", "suzanne", "teapot"],
+        shapeIds: ["circle", "quad",  "suzanne", "teapot"],
         radiusRange: [0.5, 1],
         velocityLimit: 0.5,
         defaultCount: 3,
-        createOBBTree: (positions, indices) => new OBBTree(positions, indices),
         initialObjects: [
-            // {
-            //     shapeId: "teapot",
-            //     center: [0, 0, 0],
-            //     scalingFactor: [2, 2, 2],
-            // },
+            {
+                shapeId: "teapot",
+                center: [0, 0, 0],
+                scalingFactor: [1.01, 1.01, 1.01],
+            },
+            {
+                shapeId: "teapot",
+                center: [-2.3, 1.55, 0],
+                scalingFactor: [0.1, 0.1, 0.1],
+                angularVelocity: [0, 0, 30],
+            },
         ],
     }
 );
@@ -77,15 +83,12 @@ const sceneController = new SceneController(isRunning => {
 
 
 
-
-
-
 await Promise.all([
     cameraController.ready,
     lightingController.ready,
     spawningController.ready,
 ]);
-cameraController.setView(vec3(0, 0, 9), vec3(0, 0, 0));
+cameraController.setView(vec3(-2.2, 1.4, 2.2), vec3(-2.2, 1.4, 0));
 const sweepAndPrune = new SweepAndPrune(3);
 const objectLists = spawningController.objectLists;
 

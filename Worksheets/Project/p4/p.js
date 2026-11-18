@@ -13,7 +13,7 @@ import {
 
 import { BoundsController } from "../../controls/bounds/bounds.js";
 import { CameraController } from "../../controls/camera/camera.js";
-import { SweepAndPrune } from "../../controls/collision/sweepAndPrune.js";
+import { SweepAndPrune } from "../../utility/collision/sweepAndPrune.js";
 import { loadControlPanels } from "../../controls/controls.js";
 import { LightingController } from "../../controls/lighting/lighting.js";
 import { SceneController } from "../../controls/scene/scene.js";

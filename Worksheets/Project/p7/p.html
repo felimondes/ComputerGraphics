@@ -11,10 +11,27 @@
             gap: 16px;
         }
 
+        .canvas-container {
+            position: relative;
+            width: 512px;
+            max-width: 100%;
+        }
+
         #my-canvas {
             display: block;
             max-width: 100%;
             height: auto;
+        }
+
+        .fps-counter {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            padding: 4px 8px;
+            color: white;
+            background: rgba(0, 0, 0, 0.7);
+            font: 14px sans-serif;
+            pointer-events: none;
         }
 
         .controls {
@@ -47,9 +64,12 @@
     <script id="wgsl" type="x-shader" src="p.wgsl"></script>
     <div class="workspace">
 
-        <canvas id="my-canvas" width="512" height="512">
-            Please use a browser that supports HTML5 canvas.
-        </canvas>
+        <div class="canvas-container">
+            <canvas id="my-canvas" width="512" height="512">
+                Please use a browser that supports HTML5 canvas.
+            </canvas>
+            <div class="fps-counter">FPS: <span id="fps">--</span></div>
+        </div>
 
         <aside class="controls">
             <div id="spawning"></div>

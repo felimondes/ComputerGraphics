@@ -13,37 +13,28 @@ export class OBBNode {
 }
 
 export class OBBTree {
-    constructor(positions, indices, maxTrianglesPerLeaf = 4) {
+    constructor(positions, indices) {
         this.positions = positions;
         this.indices = indices;
-        this.maxTrianglesPerLeaf = maxTrianglesPerLeaf;
         this.root = this.build(Array.from({ length: indices.length / 3 }, (_, i) => i));
     }
 
-    build(triangleIndices) {
+    build(triangleIndices, parent = null) {
         if (triangleIndices.length === 0) {
             throw new Error("Cannot build OBBTree with zero triangles.");
         }
 
-        const trianglePositions = this.extractTrianglePositions(triangleIndices);
-        const obb = OBB.fromPoints(trianglePositions);
-
-        if (
-            triangleIndices.length <= this.maxTrianglesPerLeaf ||
-            !this.canSplit(triangleIndices)
-        ) {
-            return new OBBNode(obb, triangleIndices);
+        const obb = OBB.fromPoints(this.extractTrianglePositions(triangleIndices));
+        const node = new OBBNode(obb, triangleIndices);
+        node.parent = parent;
+        node.localTransform = relativeTransform(obb, parent && parent.obb);
+        if (triangleIndices.length > 1) {
+            const [left, right] = this.split(triangleIndices, obb);
+            if (left.length && right.length) {
+                node.triangleIndices = null;
+                node.children = [this.build(left, node), this.build(right, node)];
+            }
         }
-
-        const [left, right] = this.split(triangleIndices, obb);
-        if (left.length === 0 || right.length === 0) {
-            return new OBBNode(obb, triangleIndices);
-        }
-
-        const leftNode = this.build(left);
-        const rightNode = this.build(right);
-
-        const node = new OBBNode(obb, null, [leftNode, rightNode]);
         return node;
     }
 
@@ -60,45 +51,19 @@ export class OBBTree {
         return new Float32Array(positions);
     }
 
-    canSplit(triangleIndices) {
-        return triangleIndices.length > 1;
-    }
-
     split(triangleIndices, obb) {
-        for (let axisIndex = 0; axisIndex < 3; axisIndex++) {
+        const centers = triangleIndices.map(index => this.getTriangleCenter(index));
+        const axisOrder = [0, 1, 2].sort((a, b) => obb.extents[b] - obb.extents[a]);
+        for (const axisIndex of axisOrder) {
             const axis = obb.axes[axisIndex];
-            let sum = 0;
-            for (const triIndex of triangleIndices) {
-                const centerPos = this.getTriangleCenter(triIndex);
-                const diff = [
-                    centerPos[0] - obb.center[0],
-                    centerPos[1] - obb.center[1],
-                    centerPos[2] - obb.center[2],
-                ];
-                sum += diff[0] * axis[0] + diff[1] * axis[1] + diff[2] * axis[2];
-            }
-            const threshold = sum / triangleIndices.length;
-
+            const projections = centers.map(center => dot(center, axis));
+            const threshold = projections.reduce((sum, value) => sum + value, 0) / projections.length;
             const left = [];
             const right = [];
-            for (const triIndex of triangleIndices) {
-                const centerPos = this.getTriangleCenter(triIndex);
-                const diff = [
-                    centerPos[0] - obb.center[0],
-                    centerPos[1] - obb.center[1],
-                    centerPos[2] - obb.center[2],
-                ];
-                const proj = diff[0] * axis[0] + diff[1] * axis[1] + diff[2] * axis[2];
-                if (proj < threshold) {
-                    left.push(triIndex);
-                } else {
-                    right.push(triIndex);
-                }
-            }
-
-            if (left.length > 0 && right.length > 0) {
-                return [left, right];
-            }
+            triangleIndices.forEach((index, i) => {
+                (projections[i] < threshold ? left : right).push(index);
+            });
+            if (left.length && right.length) return [left, right];
         }
 
         return [[], triangleIndices];
@@ -145,4 +110,15 @@ export class OBBTree {
         traverse(this.root, 0);
         return nodes;
     }
+}
+
+function relativeTransform(obb, parent) {
+    if (!parent) return obb.getTransform();
+    const offset = subtract(obb.center, parent.center);
+    return [
+        ...parent.axes.map(axis => [
+            dot(axis, obb.axes[0]), dot(axis, obb.axes[1]), dot(axis, obb.axes[2]), dot(axis, offset),
+        ]),
+        [0, 0, 0, 1],
+    ];
 }
