@@ -317,10 +317,11 @@ let eyePosition = vec3(
 );
 let V = cameraController.V;
 
-//instead of -1 to 0.5, we move it up a little more
+const teapotBounds = obj_1_1.getBoundingVolume();
+const teapotCenterOffsetY = teapotBounds.center[1] - obj_1_1.center[1];
 const world = {
-    min: vec3(-10, -1, -10),
-    max: vec3(10, 1, 10),
+    min: vec3(-10, -1 + teapotCenterOffsetY - teapotBounds.radius, -10),
+    max: vec3(10, 1 + teapotCenterOffsetY + teapotBounds.radius, 10),
 };
 let lightAnimationEnabled = false;
 let lightAngle = 0;
