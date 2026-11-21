@@ -17,7 +17,8 @@ import { SweepAndPrune } from "../../utility/collision/sweepAndPrune.js";
 import { loadControlPanels } from "../../controls/controls.js";
 import { LightingController } from "../../controls/lighting/lighting.js";
 import { SceneController } from "../../controls/scene/scene.js";
-import { SpawningController } from "../../controls/spawning/spawning.js";
+import { RenderObject } from "../../utility/RenderObject.js";
+import { Quad } from "../../utility/shapes/quad.js";
 await loadControlPanels();
 
 
@@ -40,37 +41,6 @@ const cameraController = new CameraController(
 const lightingController = new LightingController(
     new URL("./lighting.html", import.meta.url)
 );
-const spawningController = new SpawningController(
-    world,
-    () => {
-        sweepAndPrune.update(objectLists.flatMap(batch => batch.objects));
-        for (const batch of objectLists) {
-            updateInstanceBuffer(batch);
-        }
-        render();
-    },
-    {
-        dimensions: 2,
-        shapeIds: ["circle", "quad"],
-        radiusRange: [0.5, 1],
-        velocityLimit: 0.5,
-        defaultCount: 3,
-        initialObjects: [
-            {
-                shapeId: "quad",
-                center: [-2, 0, 0],
-                scalingFactor: [0.5, 0.5, 0.5],
-                velocity: [0.25, 0, 0],
-            },
-            {
-                shapeId: "quad",
-                center: [2, 0, 0],
-                scalingFactor: [0.25, 0.25, 0.25],
-                velocity: [-0.25, 0, 0],
-            },
-        ],
-    }
-);
 const sceneController = new SceneController(isRunning => {
     if (isRunning) {
         cameraController.previousFrameTime = 0;
@@ -85,11 +55,25 @@ const sceneController = new SceneController(isRunning => {
 await Promise.all([
     cameraController.ready,
     lightingController.ready,
-    spawningController.ready,
 ]);
 cameraController.setView(vec3(0, 0, 9), vec3(0, 0, 0));
 const sweepAndPrune = new SweepAndPrune(3);
-const objectLists = spawningController.objectLists;
+
+const quadShape = new Quad();
+const leftQuad = new RenderObject(quadShape, vec3(-1, 0, 0));
+leftQuad.scalingFactor = vec3(0.5, 0.5, 0.5);
+leftQuad.velocity = vec3(1 / 4, 0, 0);
+
+const rightQuad = new RenderObject(quadShape, vec3(1, 0, 0));
+rightQuad.scalingFactor = vec3(0.25, 0.25, 0.25);
+rightQuad.velocity = vec3(-0.25, 0, 0);
+
+const objectLists = [{
+    id: "quad",
+    label: "Quad",
+    objects: [leftQuad, rightQuad],
+    shape: quadShape,
+}];
 
 
 //Setup buffers
@@ -265,8 +249,6 @@ const boundsController = new BoundsController(device, canvasFormat, {
     sampleCount: SAMPLE_COUNT,
     onChange: () => render(),
 });
-
-spawningController.activate();
 
 requestAnimationFrame(animate);
 

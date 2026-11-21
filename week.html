@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#101827">
+    <title>Worksheets - Computer Graphics</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            font-family: "Segoe UI", sans-serif;
+            background: #101827;
+            color: #edf2f7;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+        }
+
+        header,
+        main {
+            width: min(1100px, calc(100% - 32px));
+            margin: 0 auto;
+        }
+
+        header {
+            padding: 40px 0 24px;
+        }
+
+        h1,
+        h2,
+        p {
+            margin-top: 0;
+        }
+
+        h1 {
+            margin: 20px 0 10px;
+            font-size: clamp(2rem, 5vw, 3rem);
+        }
+
+        header p {
+            color: #b7c4d6;
+        }
+
+        a {
+            color: #67e8f9;
+        }
+
+        a:focus-visible {
+            outline: 3px solid #67e8f9;
+            outline-offset: 3px;
+        }
+
+        .part {
+            margin-bottom: 28px;
+            overflow: hidden;
+            border: 1px solid #34445b;
+            border-radius: 10px;
+            background: #182436;
+        }
+
+        .part-heading {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 8px 16px;
+            padding: 16px 20px;
+        }
+
+        .part-heading h2 {
+            margin: 0;
+            font-size: 1.1rem;
+        }
+
+        .part iframe {
+            display: block;
+            width: 100%;
+            height: 640px;
+            border: 0;
+            background: white;
+        }
+
+        @media (max-width: 600px) {
+            header {
+                padding-top: 28px;
+            }
+
+            .part iframe {
+                height: 70vh;
+                min-height: 420px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <a href="./index.html">All weeks and project</a>
+        <h1 id="page-title">Worksheets</h1>
+        <p id="page-description">Scroll through the parts. Each demo loads as it approaches the screen.</p>
+    </header>
+    <main>
+        <p id="not-found" role="alert" hidden>That week or project could not be found. <a href="./index.html">Return to the index.</a></p>
+        <section id="worksheet-parts" aria-label="Worksheet parts"></section>
+    </main>
+    <script type="module">
+        import { worksheets } from "./worksheets.js";
+
+        const selectedId = new URLSearchParams(location.search).get("week");
+        const worksheet = worksheets.find(item => item.id === selectedId);
+        const pageTitle = document.getElementById("page-title");
+        const partsContainer = document.getElementById("worksheet-parts");
+
+        if (!worksheet) {
+            document.title = "Worksheet not found - Computer Graphics";
+            pageTitle.textContent = "Worksheet not found";
+            document.getElementById("not-found").hidden = false;
+        } else {
+            document.title = `${worksheet.title} - Computer Graphics`;
+            pageTitle.textContent = worksheet.title;
+
+            const frames = [];
+            for (const part of worksheet.parts) {
+                const article = document.createElement("article");
+                article.className = "part";
+
+                const heading = document.createElement("div");
+                heading.className = "part-heading";
+                const title = document.createElement("h2");
+                title.textContent = part.title;
+                const link = document.createElement("a");
+                link.href = part.url;
+                link.target = "_blank";
+                link.rel = "noopener";
+                link.textContent = "Open worksheet in a new tab";
+                heading.append(title, link);
+
+                const frame = document.createElement("iframe");
+                frame.dataset.src = part.url;
+                frame.title = part.frameTitle;
+                frame.loading = "lazy";
+                frames.push(frame);
+
+                article.append(heading, frame);
+                partsContainer.append(article);
+            }
+
+            if ("IntersectionObserver" in window) {
+                const observer = new IntersectionObserver((entries, currentObserver) => {
+                    for (const entry of entries) {
+                        if (entry.isIntersecting) {
+                            const frame = entry.target;
+                            frame.src = frame.dataset.src;
+                            currentObserver.unobserve(frame);
+                        }
+                    }
+                }, { rootMargin: "300px 0px" });
+                frames.forEach(frame => observer.observe(frame));
+            } else {
+                frames.forEach(frame => {
+                    frame.src = frame.dataset.src;
+                });
+            }
+        }
+    </script>
+</body>
+</html>

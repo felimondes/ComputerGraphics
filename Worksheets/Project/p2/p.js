@@ -12,7 +12,6 @@ import {
 } from "./mostlyClutter/index.js";
 
 
-import { BoundsController } from "../../controls/bounds/bounds.js";
 import { CameraController } from "../../controls/camera/camera.js";
 import { loadControlPanels } from "../../controls/controls.js";
 import { LightingController } from "../../controls/lighting/lighting.js";
@@ -49,9 +48,6 @@ const sceneController = new SceneController(isRunning => {
 
 
 
-
-
-
 await Promise.all([
     cameraController.ready,
     lightingController.ready,
@@ -73,6 +69,7 @@ const objectLists = [{
     objects: [leftQuad, rightQuad],
     shape: quadShape,
 }];
+
 
 //Setup buffers
 for (const batch of objectLists) {
@@ -239,13 +236,6 @@ const gridBindGroup = device.createBindGroup({
     }],
 });
 
-const boundsController = new BoundsController(device, canvasFormat, {
-    dimensions: 2,
-    sampleCount: SAMPLE_COUNT,
-    onChange: () => render(),
-});
-
-
 requestAnimationFrame(animate);
 
 function createWorldGrid(bounds, spacing) {
@@ -313,7 +303,6 @@ function render() {
         pass.drawIndexed(batch.shape.getIndices().length, batch.objects.length);
     }
 
-    boundsController.draw(pass, objectLists, V, P);
     pass.end();
     device.queue.submit([encoder.finish()]);
 }

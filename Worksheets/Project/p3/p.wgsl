@@ -25,7 +25,6 @@ struct VertexInput {
     @location(3) model1: vec4f,
     @location(4) model2: vec4f,
     @location(5) model3: vec4f,
-    @location(6) instanceColor: vec4f,
 };
 
 
@@ -33,7 +32,6 @@ struct VertexOutput {
     @builtin(position) position: vec4f,
     @location(0) normal: vec3f,
     @location(1) worldPosition: vec3f,
-    @location(2) instanceColor: vec4f,
 };
 
 @vertex
@@ -51,7 +49,6 @@ fn main_vs(input: VertexInput) -> VertexOutput
     output.position = uniforms.P * uniforms.V * worldPosition;
     output.normal = (model * vec4f(input.normal.xyz, 0.0)).xyz;
     output.worldPosition = worldPosition.xyz;
-    output.instanceColor = input.instanceColor;
     return output;
 }
 
@@ -61,7 +58,7 @@ fn main_fs(input: VertexOutput) -> @location(0) vec4f
     let n = normalize(input.normal);
     let wi = normalize(-le);
     let wo = normalize(uniforms.eyePosition - input.worldPosition);
-    let kd = uniforms.kd * diffuseColor * input.instanceColor.xyz;
+    let kd = uniforms.kd * diffuseColor;
     let ka = kd;
     let ks = uniforms.ks * specularColor;
     let Li = uniforms.Le * vec3f(1.0, 1.0, 1.0);

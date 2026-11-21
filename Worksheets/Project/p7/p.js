@@ -57,7 +57,7 @@ const spawningController = new SpawningController(
     {
         dimensions: DIMENSIONS,
         shapeIds: ["circle", "quad",  "suzanne", "teapot"],
-        radiusRange: [0.5, 1],
+        radiusRange: [0.5, 0.5],
         velocityLimit: 0.5,
         defaultCount: 3,
         shareOBBTrees: true,

@@ -11,9 +11,9 @@ import {
     createVertexBufferLayout
 } from "./mostlyClutter/index.js";
 
+
 import { BoundsController } from "../../controls/bounds/bounds.js";
 import { CameraController } from "../../controls/camera/camera.js";
-import { SweepAndPrune } from "../../utility/collision/sweepAndPrune.js";
 import { loadControlPanels } from "../../controls/controls.js";
 import { LightingController } from "../../controls/lighting/lighting.js";
 import { SceneController } from "../../controls/scene/scene.js";
@@ -57,16 +57,15 @@ await Promise.all([
     lightingController.ready,
 ]);
 cameraController.setView(vec3(0, 0, 9), vec3(0, 0, 0));
-const sweepAndPrune = new SweepAndPrune(3);
 
 const quadShape = new Quad();
-const leftQuad = new RenderObject(quadShape, vec3(-1, 0, 0));
+const leftQuad = new RenderObject(quadShape, vec3(-2, 0, 0));
 leftQuad.scalingFactor = vec3(0.5, 0.5, 0.5);
-leftQuad.velocity = vec3(1 / 4, 0, 0);
+leftQuad.velocity = vec3(1, 0, 0);
 
-const rightQuad = new RenderObject(quadShape, vec3(1, 0, 0));
+const rightQuad = new RenderObject(quadShape, vec3(2, 0, 0));
 rightQuad.scalingFactor = vec3(0.25, 0.25, 0.25);
-rightQuad.velocity = vec3(-0.25, 0, 0);
+rightQuad.velocity = vec3(-1, 0, 0);
 
 const objectLists = [{
     id: "quad",
@@ -74,7 +73,6 @@ const objectLists = [{
     objects: [leftQuad, rightQuad],
     shape: quadShape,
 }];
-
 
 //Setup buffers
 for (const batch of objectLists) {
@@ -101,7 +99,7 @@ function updateInstanceBuffer(batch) {
             batch.objects.length
         );
         batch.instanceBuffer = device.createBuffer({
-            size: batch.instanceBufferCapacity * 80,
+            size: batch.instanceBufferCapacity * 64,
             usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
         });
         device.queue.onSubmittedWorkDone().then(() => oldBuffer.destroy());
@@ -115,10 +113,7 @@ function updateInstanceBuffer(batch) {
         batch.instanceBuffer,
         0,
         new Float32Array(
-            batch.objects.flatMap(object => [
-                ...Array.from(flatten(object.getM())),
-                ...(object.isColliding ? [1, 0, 0, 1] : [1, 1, 1, 1]),
-            ])
+            batch.objects.flatMap(object => Array.from(flatten(object.getM())))
         )
     );
 }
@@ -180,7 +175,7 @@ const bindGroup = createBindGroup(device, objectUniforms.buffer, objectPipeline)
 
 
 
-const gridPositions = createWorldGrid(world, 2);
+const gridPositions = createWorldGrid(world, 1);
 const gridVertexBuffer = device.createBuffer({
     size: gridPositions.byteLength,
     usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
@@ -249,6 +244,7 @@ const boundsController = new BoundsController(device, canvasFormat, {
     sampleCount: SAMPLE_COUNT,
     onChange: () => render(),
 });
+
 
 requestAnimationFrame(animate);
 
@@ -356,9 +352,6 @@ function animate(timestamp = 0) {
             for (const object of batch.objects) {
                 object.step(world);
             }
-        }
-        sweepAndPrune.update(objectLists.flatMap(batch => batch.objects));
-        for (const batch of objectLists) {
             updateInstanceBuffer(batch);
         }
     }

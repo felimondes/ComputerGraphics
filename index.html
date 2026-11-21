@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#101827">
-    <title>Computer Graphics — Weekly Demos</title>
+    <title>Computer Graphics Worksheets</title>
     <style>
         :root {
             color-scheme: dark;
@@ -23,7 +23,7 @@
 
         header,
         main {
-            width: min(1100px, calc(100% - 32px));
+            width: min(900px, calc(100% - 32px));
             margin: 0 auto;
         }
 
@@ -47,372 +47,75 @@
             color: #b7c4d6;
         }
 
-        nav {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin: 24px 0 32px;
+        .worksheet-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin: 0;
+            padding: 0;
+            list-style: none;
         }
 
-        .week-button {
-            min-width: 104px;
-            padding: 12px 18px;
-            border: 1px solid #53647d;
-            border-radius: 8px;
-            background: #1c293b;
+        .worksheet-list a {
+            display: block;
+            height: 100%;
+            padding: 20px;
+            border: 1px solid #34445b;
+            border-radius: 10px;
+            background: #182436;
             color: inherit;
-            font: inherit;
-            font-weight: 700;
-            cursor: pointer;
+            text-decoration: none;
         }
 
-        .week-button:hover,
-        .week-button[aria-pressed="true"] {
+        .worksheet-list a:hover {
             border-color: #67e8f9;
-            background: #164e63;
+            background: #1c293b;
         }
 
-        .week-button:focus-visible,
-        a:focus-visible {
+        .worksheet-list a:focus-visible {
             outline: 3px solid #67e8f9;
             outline-offset: 3px;
         }
 
-        .week-panel > h2 {
-            margin-bottom: 20px;
+        .worksheet-list h2 {
+            margin-bottom: 8px;
+            font-size: 1.15rem;
         }
 
-        .demo {
-            margin-bottom: 28px;
-            overflow: hidden;
-            border: 1px solid #34445b;
-            border-radius: 10px;
-            background: #182436;
-        }
-
-        .demo-heading {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: baseline;
-            justify-content: space-between;
-            gap: 8px 16px;
-            padding: 16px 20px;
-        }
-
-        .demo-heading h3 {
-            margin: 0;
-            font-size: 1.1rem;
-        }
-
-        a {
-            color: #67e8f9;
-        }
-
-        .demo iframe {
-            display: block;
-            width: 100%;
-            height: 640px;
-            border: 0;
-            background: white;
-        }
-
-        @media (max-width: 600px) {
-            header {
-                padding-top: 32px;
-            }
-
-            .week-button {
-                flex: 1 1 28%;
-                min-width: 90px;
-            }
-
-            .demo iframe {
-                height: 70vh;
-                min-height: 420px;
-            }
+        .worksheet-list p {
+            margin-bottom: 0;
+            color: #b7c4d6;
         }
     </style>
 </head>
 <body>
     <header>
         <h1>Computer Graphics</h1>
-        <p>Explore the weekly work and project.</p>
+        <p>Choose a week or the project to browse its worksheets.</p>
     </header>
-
     <main>
-        <nav aria-label="Choose a week or project">
-            <button class="week-button" type="button" data-week="1" aria-controls="week-1" aria-pressed="true">WEEK 1</button>
-            <button class="week-button" type="button" data-week="2" aria-controls="week-2" aria-pressed="false">WEEK 2</button>
-            <button class="week-button" type="button" data-week="3" aria-controls="week-3" aria-pressed="false">WEEK 3</button>
-            <button class="week-button" type="button" data-week="4" aria-controls="week-4" aria-pressed="false">WEEK 4</button>
-            <button class="week-button" type="button" data-week="5" aria-controls="week-5" aria-pressed="false">WEEK 5</button>
-            <button class="week-button" type="button" data-week="6" aria-controls="week-6" aria-pressed="false">WEEK 6</button>
-            <button class="week-button" type="button" data-week="7" aria-controls="week-7" aria-pressed="false">WEEK 7</button>
-            <button class="week-button" type="button" data-week="8" aria-controls="week-8" aria-pressed="false">WEEK 8</button>
-            <button class="week-button" type="button" data-week="9" aria-controls="week-9" aria-pressed="false">WEEK 9</button>
-            <button class="week-button" type="button" data-week="10" aria-controls="week-10" aria-pressed="false">WEEK 10</button>
-            <button class="week-button" type="button" data-week="project" aria-controls="week-project" aria-pressed="false">PROJECT</button>
+        <nav aria-label="Weeks and project">
+            <ul class="worksheet-list" id="worksheet-list"></ul>
         </nav>
-
-        <section class="week-panel" id="week-1" aria-labelledby="week-1-title">
-            <h2 id="week-1-title">Week 1</h2>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 1 - WebGPU canvas setup</h3><a href="Worksheets/W1/p1.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/W1/p1.html" title="Week 1, part 1: WebGPU canvas setup" loading="lazy"></iframe>
-            </article>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 2 - Dots</h3><a href="Worksheets/W1/p2.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/W1/p2.html" title="Week 1, part 2: Dots" loading="lazy"></iframe>
-            </article>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 3 - Color interpolation</h3><a href="Worksheets/W1/p3.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/W1/p3.html" title="Week 1, part 3: Color interpolation" loading="lazy"></iframe>
-            </article>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 4 - Rotating square</h3><a href="Worksheets/W1/p4.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/W1/p4.html" title="Week 1, part 4: Rotating square" loading="lazy"></iframe>
-            </article>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 5 - Animated bouncing circle</h3><a href="Worksheets/W1/p5.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/W1/p5.html" title="Week 1, part 5: Animated bouncing circle" loading="lazy"></iframe>
-            </article>
-        </section>
-
-        <section class="week-panel" id="week-2" aria-labelledby="week-2-title" hidden>
-            <h2 id="week-2-title">Week 2</h2>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 1 - Click to draw dots</h3><a href="Worksheets/W2/p1/p.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/W2/p1/p.html" title="Week 2, part 1: Click to draw dots" loading="lazy"></iframe>
-            </article>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 2 - Colored points and clear canvas</h3><a href="Worksheets/W2/p2/p.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/W2/p2/p.html" title="Week 2, part 2: Colored points and clear canvas" loading="lazy"></iframe>
-            </article>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 3 - Triangles</h3><a href="Worksheets/W2/p3/p.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/W2/p3/p.html" title="Week 2, part 3: Triangles" loading="lazy"></iframe>
-            </article>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 4 - Circles</h3><a href="Worksheets/W2/p4/p.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/W2/p4/p.html" title="Week 2, part 4: Circles" loading="lazy"></iframe>
-            </article>
-        </section>
-
-        <section class="week-panel" id="week-3" aria-labelledby="week-3-title" hidden>
-            <h2 id="week-3-title">Week 3</h2>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 1 - Cube with orthographic projection</h3><a href="Worksheets/W3/p1/p.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/W3/p1/p.html" title="Week 3, part 1: Cube with orthographic projection" loading="lazy"></iframe>
-            </article>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 2 - One-, two-, and three-point perspective</h3><a href="Worksheets/W3/p2/p.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/W3/p2/p.html" title="Week 3, part 2: One-, two-, and three-point perspective" loading="lazy"></iframe>
-            </article>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 3: Affine and viewing transformations</h3><a href="markdown-viewer.html?file=Worksheets%2FW3%2Fp3%2Freflections.md" target="_blank" rel="noopener">Open write-up in a new tab</a></div>
-                <iframe src="markdown-viewer.html?file=Worksheets%2FW3%2Fp3%2Freflections.md" title="Week 3, part 3: Affine and viewing transformations" loading="lazy"></iframe>
-            </article>
-        </section>
-
-        <section class="week-panel" id="week-4" aria-labelledby="week-4-title" hidden>
-            <h2 id="week-4-title">Week 4</h2>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 1 - Subdivided sphere with vertex colors</h3><a href="Worksheets/W4/p1/p.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/W4/p1/p.html" title="Week 4, part 1: Subdivided sphere with vertex colors" loading="lazy"></iframe>
-            </article>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 2 - Sphere subdivision and anti-aliasing</h3><a href="Worksheets/W4/p2/p.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/W4/p2/p.html" title="Week 4, part 2: Sphere subdivision and anti-aliasing" loading="lazy"></iframe>
-            </article>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 3 - Orbiting camera and sphere subdivision</h3><a href="Worksheets/W4/p3/p.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/W4/p3/p.html" title="Week 4, part 3: Orbiting camera and sphere subdivision" loading="lazy"></iframe>
-            </article>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 4 - Phong lighting with adjustable parameters</h3><a href="Worksheets/W4/p4/p.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/W4/p4/p.html" title="Week 4, part 4: Phong lighting with adjustable parameters" loading="lazy"></iframe>
-            </article>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 5 - Phong lighting with camera orbit and subdivision</h3><a href="Worksheets/W4/p5/p.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/W4/p5/p.html" title="Week 4, part 5: Phong lighting with camera orbit and subdivision" loading="lazy"></iframe>
-            </article>
-            <article class="demo">
-                <div class="demo-heading"><h3>MSAA comparison</h3><a href="Worksheets/W4/With_MSAA_vs_without.html" target="_blank" rel="noopener">Open comparison in a new tab</a></div>
-                <iframe src="Worksheets/W4/With_MSAA_vs_without.html" title="Week 4, MSAA comparison" loading="lazy"></iframe>
-            </article>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 6 - Flat, Gouraud, and Phong shading</h3><a href="markdown-viewer.html?file=Worksheets%2FW4%2Fp6%2Freflections.md" target="_blank" rel="noopener">Open write-up in a new tab</a></div>
-                <iframe src="markdown-viewer.html?file=Worksheets%2FW4%2Fp6%2Freflections.md" title="Week 4, part 6: Flat, Gouraud, and Phong shading" loading="lazy"></iframe>
-            </article>
-        </section>
-
-        <section class="week-panel" id="week-5" aria-labelledby="week-5-title" hidden>
-            <h2 id="week-5-title">Week 5</h2>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 3 - Indexed Suzanne model with simple shading</h3><a href="Worksheets/W5/p3/p.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/W5/p3/p.html" title="Week 5, part 3: Indexed Suzanne model with simple shading" loading="lazy"></iframe>
-            </article>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 4 - Suzanne model with Phong shading</h3><a href="Worksheets/W5/p4/p.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/W5/p4/p.html" title="Week 5, part 4: Suzanne model with Phong shading" loading="lazy"></iframe>
-            </article>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 4 - Surface normals and mesh smoothness</h3><a href="markdown-viewer.html?file=Worksheets%2FW5%2Fp4.md" target="_blank" rel="noopener">Open write-up in a new tab</a></div>
-                <iframe src="markdown-viewer.html?file=Worksheets%2FW5%2Fp4.md" title="Week 5, part 4: Surface normals and mesh smoothness" loading="lazy"></iframe>
-            </article>
-        </section>
-
-
-        <section class="week-panel" id="week-6" aria-labelledby="week-6-title" hidden>
-            <h2 id="week-6-title">Week 6</h2>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 1 </h3><a href="Worksheets/W6/p1/p.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/W6/p1/p.html" title="Week 6, part 1" loading="lazy"></iframe>
-            </article>
-
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 2 </h3><a href="Worksheets/W6/p2/p.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/W6/p2/p.html" title="Week 6, part 2" loading="lazy"></iframe>
-            </article>
-
-
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 3 </h3><a href="Worksheets/W6/p3/p.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/W6/p3/p.html" title="Week 6, part 3" loading="lazy"></iframe>
-            </article>
-        </section>
-
-        <section class="week-panel" id="week-7" aria-labelledby="week-7-title" hidden>
-            <h2 id="week-7-title">Week 7</h2>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 1</h3><a href="Worksheets/W7/p1/p.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/W7/p1/p.html" title="Week 7, part 1" loading="lazy"></iframe>
-            </article>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 2</h3><a href="Worksheets/W7/p2/p.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/W7/p2/p.html" title="Week 7, part 2" loading="lazy"></iframe>
-            </article>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 3</h3><a href="Worksheets/W7/p3/p.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/W7/p3/p.html" title="Week 7, part 3" loading="lazy"></iframe>
-            </article>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 4</h3><a href="Worksheets/W7/p4/p.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/W7/p4/p.html" title="Week 7, part 4" loading="lazy"></iframe>
-            </article>
-        </section>
-
-        <section class="week-panel" id="week-8" aria-labelledby="week-8-title" hidden>
-            <h2 id="week-8-title">Week 8</h2>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 1 - Textured ground and red quads</h3><a href="Worksheets/W8/p1/p.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/W8/p1/p.html" title="Week 8, part 1: Textured ground and red quads" loading="lazy"></iframe>
-            </article>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 2 - Projection shadows</h3><a href="Worksheets/W8/p2/p.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/W8/p2/p.html" title="Week 8, part 2: Projection shadows" loading="lazy"></iframe>
-            </article>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 3 - Projection shadows</h3><a href="Worksheets/W8/p3/p.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/W8/p3/p.html" title="Week 8, part 3: Projection shadows" loading="lazy"></iframe>
-            </article>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 4 - Projection shadows</h3><a href="Worksheets/W8/p4/p.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/W8/p4/p.html" title="Week 8, part 4: Projection shadows" loading="lazy"></iframe>
-            </article>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 5 - Teapot projection shadows</h3><a href="Worksheets/W8/p5/p.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/W8/p5/p.html" title="Week 8, part 5: Teapot projection shadows" loading="lazy"></iframe>
-            </article>
-        </section>
-
-        <section class="week-panel" id="week-9" aria-labelledby="week-9-title" hidden>
-            <h2 id="week-9-title">Week 9</h2>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 1 - Rendering depth from the light</h3><a href="Worksheets/W9/p1/p.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/W9/p1/p.html" title="Week 9, part 1: Rendering depth from the light" loading="lazy"></iframe>
-            </article>
-            <article class="demo">
-                <div class="demo-heading"><h3>Parts 2-3 - Shadow mapping</h3><a href="Worksheets/W9/p2_3/p.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/W9/p2_3/p.html" title="Week 9, parts 2 and 3: Shadow mapping" loading="lazy"></iframe>
-            </article>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 4 - Percentage-closer filtering</h3><a href="Worksheets/W9/p4/p.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/W9/p4/p.html" title="Week 9, part 4: Percentage-closer filtering" loading="lazy"></iframe>
-            </article>
-        </section>
-
-        <section class="week-panel" id="week-10" aria-labelledby="week-10-title" hidden>
-            <h2 id="week-10-title">Week 10</h2>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 1 - Spherical-coordinate camera rotation</h3><a href="Worksheets/W10/p1/p.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/W10/p1/p.html" title="Week 10, part 1: Spherical-coordinate camera rotation" loading="lazy"></iframe>
-            </article>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 2 - Pointer lock</h3><a href="Worksheets/W10/p2/p.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/W10/p2/p.html" title="Week 10, part 2: Pointer lock" loading="lazy"></iframe>
-            </article>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 3 - WASD dollying and panning</h3><a href="Worksheets/W10/p3/p.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/W10/p3/p.html" title="Week 10, part 3: WASD dollying and panning" loading="lazy"></iframe>
-            </article>
-        </section>
-
-        <section class="week-panel" id="week-project" aria-labelledby="week-project-title" hidden>
-            <h2 id="week-project-title">Project</h2>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 1</h3><a href="Worksheets/Project/p1/p.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/Project/p1/p.html" title="Project, part 1" loading="lazy"></iframe>
-            </article>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 2</h3><a href="Worksheets/Project/p2/p.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/Project/p2/p.html" title="Project, part 2" loading="lazy"></iframe>
-            </article>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 3</h3><a href="Worksheets/Project/p3/p.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/Project/p3/p.html" title="Project, part 3" loading="lazy"></iframe>
-            </article>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 4</h3><a href="Worksheets/Project/p4/p.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/Project/p4/p.html" title="Project, part 4" loading="lazy"></iframe>
-            </article>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 5</h3><a href="Worksheets/Project/p5/p.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/Project/p5/p.html" title="Project, part 5" loading="lazy"></iframe>
-            </article>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 7</h3><a href="Worksheets/Project/p7/p.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/Project/p7/p.html" title="Project, part 7" loading="lazy"></iframe>
-            </article>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 9</h3><a href="Worksheets/Project/p9/p.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/Project/p9/p.html" title="Project, part 9" loading="lazy"></iframe>
-            </article>
-            <article class="demo">
-                <div class="demo-heading"><h3>Part 10</h3><a href="Worksheets/Project/p10/p.html" target="_blank" rel="noopener">Open demo in a new tab</a></div>
-                <iframe src="Worksheets/Project/p10/p.html" title="Project, part 10" loading="lazy"></iframe>
-            </article>
-        </section>
-
     </main>
+    <script type="module">
+        import { worksheets } from "./worksheets.js";
 
-    <script>
-        const weekButtons = document.querySelectorAll(".week-button");
-        const weekPanels = document.querySelectorAll(".week-panel");
+        const list = document.getElementById("worksheet-list");
+        for (const worksheet of worksheets) {
+            const item = document.createElement("li");
+            const link = document.createElement("a");
+            link.href = `week.html?week=${encodeURIComponent(worksheet.id)}`;
 
-        weekButtons.forEach((button) => {
-            button.addEventListener("click", () => {
-                const selectedWeek = button.dataset.week;
+            const title = document.createElement("h2");
+            title.textContent = worksheet.title;
+            const partCount = document.createElement("p");
+            partCount.textContent = `${worksheet.parts.length} ${worksheet.parts.length === 1 ? "part" : "parts"}`;
 
-                weekButtons.forEach((weekButton) => {
-                    weekButton.setAttribute("aria-pressed", String(weekButton === button));
-                });
-
-                weekPanels.forEach((panel) => {
-                    panel.hidden = panel.id !== `week-${selectedWeek}`;
-                });
-            });
-        });
+            link.append(title, partCount);
+            item.append(link);
+            list.append(item);
+        }
     </script>
 </body>
 </html>

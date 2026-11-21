@@ -44,14 +44,13 @@ export function createVertexBufferLayout() {
 
 export function createInstanceBufferLayout() {
     return {
-        arrayStride: 80,
+        arrayStride: 64,
         stepMode: 'instance', //IMPORTANT - ONLY WORKS PER INSTANCE, so for each object that is rendered. 
         attributes: [
             { format: 'float32x4', offset: 0, shaderLocation: 2 }, //first vector in model matrix
             { format: 'float32x4', offset: 16, shaderLocation: 3 }, //second ...
             { format: 'float32x4', offset: 32, shaderLocation: 4 }, //...
             { format: 'float32x4', offset: 48, shaderLocation: 5 },
-            { format: 'float32x4', offset: 64, shaderLocation: 6 },
         ],
     };
 }
@@ -82,10 +81,7 @@ export function createVertexBuffer(device, positions, normals) {
 //instance buffer is used when u want to do something pr. instance instead of pr. vertex like the vertex buffers. U have to call pass.draw(vertexCount, 100);
 export function createInstanceBuffer(device, modelMatrices) {
     const data = new Float32Array(
-        modelMatrices.flatMap(model => [
-            ...Array.from(flatten(model)),
-            1, 1, 1, 1,
-        ])
+        modelMatrices.flatMap(model => Array.from(flatten(model)))
     );
     const instanceBuffer = device.createBuffer({
         size: data.byteLength,
@@ -151,4 +147,5 @@ export function configureCanvas(device) {
         canvasFormat
     }
 }
+
 
