@@ -13,10 +13,10 @@ import {
 
 import { BoundsController } from "../../controls/bounds/bounds.js";
 import { CameraController } from "../../controls/camera/camera.js";
-import { SweepAndPrune } from "../../utility/collision/sweepAndPrune.js";
 import { loadControlPanels } from "../../controls/controls.js";
 import { LightingController } from "../../controls/lighting/lighting.js";
 import { SceneController } from "../../controls/scene/scene.js";
+import { SweepAndPrune } from "../../utility/collision/sweepAndPrune.js";
 import { RenderObject } from "../../utility/RenderObject.js";
 import { Quad } from "../../utility/shapes/quad.js";
 await loadControlPanels();
@@ -62,11 +62,11 @@ const sweepAndPrune = new SweepAndPrune(3);
 const quadShape = new Quad();
 const leftQuad = new RenderObject(quadShape, vec3(-1, 0, 0));
 leftQuad.scalingFactor = vec3(0.5, 0.5, 0.5);
-leftQuad.velocity = vec3(1 / 4, 0, 0);
+leftQuad.velocity = vec3(1 , 0, 0);
 
 const rightQuad = new RenderObject(quadShape, vec3(1, 0, 0));
 rightQuad.scalingFactor = vec3(0.25, 0.25, 0.25);
-rightQuad.velocity = vec3(-0.25, 0, 0);
+rightQuad.velocity = vec3(-1, 0, 0);
 
 const objectLists = [{
     id: "quad",

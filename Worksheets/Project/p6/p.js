@@ -60,6 +60,7 @@ const spawningController = new SpawningController(
         radiusRange: [0.5, 1],
         velocityLimit: 0.5,
         defaultCount: 3,
+        shareOBBTrees: true,
         initialObjects: [
             {
                 shapeId: "teapot",

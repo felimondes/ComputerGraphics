@@ -56,14 +56,18 @@ export class OBBTree {
         const axisOrder = [0, 1, 2].sort((a, b) => obb.extents[b] - obb.extents[a]);
         for (const axisIndex of axisOrder) {
             const axis = obb.axes[axisIndex];
-            const projections = centers.map(center => dot(center, axis));
-            const threshold = projections.reduce((sum, value) => sum + value, 0) / projections.length;
-            const left = [];
-            const right = [];
-            triangleIndices.forEach((index, i) => {
-                (projections[i] < threshold ? left : right).push(index);
-            });
-            if (left.length && right.length) return [left, right];
+            const sorted = triangleIndices.map((index, i) => ({
+                index,
+                projection: dot(centers[i], axis),
+            })).sort((a, b) => a.projection - b.projection);
+            if (sorted[0].projection === sorted[sorted.length - 1].projection) {
+                continue;
+            }
+            const midpoint = Math.floor(sorted.length / 2);
+            return [
+                sorted.slice(0, midpoint).map(item => item.index),
+                sorted.slice(midpoint).map(item => item.index),
+            ];
         }
 
         return [[], triangleIndices];

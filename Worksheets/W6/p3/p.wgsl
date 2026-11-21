@@ -63,7 +63,7 @@ fn main_fs(input: VertexOutput) -> @location(0) vec4f
     let n = normalize(input.normal);
     let phi = atan2(n.z, n.x);
     let u = 0.5 - phi / (2.0 * PI);
-    let v = acos(clamp(n.y, -1.0, 1.0)) / PI;
+    let v = 1.0 - acos(clamp(n.y, -1.0, 1.0)) / PI;
 
     // Sample the Earth texture
     let uv = vec2f(u, v);
