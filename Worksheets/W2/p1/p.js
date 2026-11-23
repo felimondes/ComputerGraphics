@@ -53,25 +53,10 @@ function render() {
 
     pass.setPipeline(pipeline);
 
-    // uniform.add(device, objectUniforms, {
-    //     model: object.getM(),
-    //     view: V,
-    //     projection: P,
-    //     color: vec4(1.0, 0.0, 0.0, 1.0)
-    // });
-
     pass.setVertexBuffer(0, vertexBuffer);
 
     pass.draw(positions.length);
 
-
-    // pass.setIndexBuffer(
-    //     indexBuffer,
-    //     'uint32'
-    // );
-    // pass.drawIndexed(
-    //     wireIndices.length
-    // );
 
     pass.end();
     device.queue.submit([encoder.finish()]);
@@ -98,36 +83,6 @@ function add_point(array, point, size) {
     array.push.apply(array, point_coords); //adds all 6 points to array
 }
 
-
-// const objectUniforms = uniform.createBufferAndLayout(
-//     device,
-//     [
-//         { name: "model", type: "mat4" },
-//         { name: "view", type: "mat4" },
-//         { name: "projection", type: "mat4" },
-//         { name: "color", type: "vec4" }
-//     ]
-// );
-
-// const bindGroup = uniform.createBindGroup(device, objectUniforms.buffer, pipeline);
-
-
-// let V = lookAt(
-//     vec3(3, 3, 3),
-//     vec3(0.5, 0.5, 0.5),
-//     vec3(0, 1, 0)
-// );
-
-// const P = ortho(
-//     -2, 2,
-//     -2, 2,
-//     -10, 10
-// );
-
-
-// animate();
-
-
 async function createShaderModule(name) {
     const shaderElement = document.getElementById(name);
     const shaderCode = await fetch(shaderElement.src).then(response => response.text());
@@ -136,8 +91,6 @@ async function createShaderModule(name) {
         code: shaderCode
     });
 }
-
-
 
 function createPipeline(positionBufferLayouts) {
     if (!Array.isArray(positionBufferLayouts)) {
