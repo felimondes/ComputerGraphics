@@ -173,16 +173,20 @@
                 link.href = part.url;
                 link.target = "_blank";
                 link.rel = "noopener";
-                link.textContent = "Open worksheet in a new tab";
+                link.textContent = worksheet.id === "project"
+                    ? "Open demo in a new tab"
+                    : "Open worksheet in a new tab";
                 heading.append(title, link);
 
-                const frame = document.createElement("iframe");
-                frame.dataset.src = part.url;
-                frame.title = part.frameTitle;
-                frame.loading = "lazy";
-                frames.push(frame);
-
-                article.append(heading, frame);
+                article.append(heading);
+                if (worksheet.id !== "project") {
+                    const frame = document.createElement("iframe");
+                    frame.dataset.src = part.url;
+                    frame.title = part.frameTitle;
+                    frame.loading = "lazy";
+                    frames.push(frame);
+                    article.append(frame);
+                }
                 partsContainer.append(article);
             }
 

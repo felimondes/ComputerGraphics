@@ -47,6 +47,36 @@
             color: #b7c4d6;
         }
 
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #34445b;
+        }
+
+        .tab {
+            padding: 10px 14px;
+            border: 1px solid transparent;
+            border-radius: 8px 8px 0 0;
+            background: transparent;
+            color: #b7c4d6;
+            font: inherit;
+            cursor: pointer;
+        }
+
+        .tab[aria-selected="true"] {
+            border-color: #34445b;
+            border-bottom-color: #101827;
+            margin-bottom: -1px;
+            background: #182436;
+            color: #edf2f7;
+        }
+
+        .tab:focus-visible {
+            outline: 3px solid #67e8f9;
+            outline-offset: 3px;
+        }
+
         .worksheet-list {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -86,6 +116,15 @@
             margin-bottom: 0;
             color: #b7c4d6;
         }
+
+        .declaration-lines {
+            display: grid;
+            gap: 12px;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            color: #b7c4d6;
+        }
     </style>
 </head>
 <body>
@@ -94,9 +133,20 @@
         <p>Choose a week or the project to browse its worksheets.</p>
     </header>
     <main>
-        <nav aria-label="Weeks and project">
-            <ul class="worksheet-list" id="worksheet-list"></ul>
-        </nav>
+        <div class="tabs" role="tablist" aria-label="Index sections">
+            <button class="tab" id="worksheets-tab" type="button" role="tab" aria-selected="true" aria-controls="worksheets-panel" tabindex="0">Worksheets</button>
+            <button class="tab" id="ai-declaration-tab" type="button" role="tab" aria-selected="false" aria-controls="ai-declaration-panel" tabindex="-1">AI Declaration</button>
+        </div>
+        <section id="worksheets-panel" role="tabpanel" aria-labelledby="worksheets-tab" tabindex="0">
+            <nav aria-label="Weeks and project">
+                <ul class="worksheet-list" id="worksheet-list"></ul>
+            </nav>
+        </section>
+        <section id="ai-declaration-panel" role="tabpanel" aria-labelledby="ai-declaration-tab" tabindex="0" hidden>
+            <ul class="declaration-lines">
+                <li>I used AI mostly for coding help and as a tutor to help me understand the concepts</li>
+            </ul>
+        </section>
     </main>
     <script type="module">
         import { worksheets } from "./worksheets.js";
@@ -116,6 +166,39 @@
             item.append(link);
             list.append(item);
         }
+
+        const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
+        const activateTab = (tab, moveFocus = false) => {
+            for (const currentTab of tabs) {
+                const selected = currentTab === tab;
+                currentTab.setAttribute("aria-selected", String(selected));
+                currentTab.tabIndex = selected ? 0 : -1;
+                document.getElementById(currentTab.getAttribute("aria-controls")).hidden = !selected;
+            }
+            if (moveFocus) {
+                tab.focus();
+            }
+        };
+
+        tabs.forEach((tab, index) => {
+            tab.addEventListener("click", () => activateTab(tab));
+            tab.addEventListener("keydown", event => {
+                let nextIndex;
+                if (event.key === "ArrowRight") {
+                    nextIndex = (index + 1) % tabs.length;
+                } else if (event.key === "ArrowLeft") {
+                    nextIndex = (index - 1 + tabs.length) % tabs.length;
+                } else if (event.key === "Home") {
+                    nextIndex = 0;
+                } else if (event.key === "End") {
+                    nextIndex = tabs.length - 1;
+                } else {
+                    return;
+                }
+                event.preventDefault();
+                activateTab(tabs[nextIndex], true);
+            });
+        });
     </script>
 </body>
 </html>
