@@ -62,10 +62,7 @@ let pipeline = createPipeline([
 
 let sphereShape = new Sphere(subdivisionLevel);
 let sphere = new RenderObject(sphereShape, vec3(0, 0, 0));
-
-sphere.rotation = vec3(0, 0, 0);
-sphere.velocity = vec3(0, 0, 0);
-sphere.angularVelocity = vec3(10, 50, 10);
+sphere.angularVelocity = vec3(0,45,0)
 let spheres = [sphere];
 
 let V = lookAt(
@@ -80,6 +77,7 @@ let P = perspective(
     0.01,
     100
 );
+
 
 let vertexBuffer = createVertexBuffer(device, sphereShape.positions);
 let colorBuffer = createVertexBuffer(device, sphereShape.colors);

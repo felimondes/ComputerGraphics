@@ -34,11 +34,13 @@ export class Sphere extends Shape {
         };
     }
 
-    createColors(colors = []) {
-        if (colors.length === 0) {
-            throw new Error("Sphere requires at least one color.");
-        }
-        return this.positions.map((_, index) => colors[index % colors.length]); //just put red everywhere in this case
+    createColors() {
+        return this.positions.map((position) =>
+            add(
+                scale(1.0, vec4(position, 1.0)),
+                vec4(0.5, 0.5, 0.5, 0.5)
+            )
+        );
     }
 
     getBoundingRadius() {

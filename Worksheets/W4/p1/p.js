@@ -46,18 +46,14 @@ let pipeline = createPipeline([
 ]);
 
 
-let sphereColors = [vec4(1.0, 0, 0, 1.0)];
-let sphereShape = new Sphere(sphereColors, subdivisionLevel);
+let sphereShape = new Sphere(subdivisionLevel);
 let sphere = new RenderObject(sphereShape, vec3(0, 0, 0));
-
-sphere.rotation = vec3(0, 0, 0);
-sphere.velocity = vec3(0, 0, 0);
-sphere.angularVelocity = vec3(0, 45, 0);
+sphere.angularVelocity = vec3(0,45,0)
 let spheres = [sphere];
 
 let V = lookAt(
-    vec3(0, 0, 8),
-    vec3(0, 0.5, 0),
+    vec3(0, 0, 4),
+    vec3(0, 0, 0),
     vec3(1, 1, 0)
 );
 
@@ -98,7 +94,7 @@ function setSubdivisionLevel(level) {
         Math.min(MAX_SUBDIVISION, level)
     );
 
-    sphereShape = new Sphere(sphereColors, subdivisionLevel);
+    sphereShape = new Sphere(subdivisionLevel);
     vertexBuffer = createVertexBuffer(device, sphereShape.positions);
     colorBuffer = createVertexBuffer(device, sphereShape.colors);
     indexBuffer = createIndexBuffer(device, sphereShape.indices);
