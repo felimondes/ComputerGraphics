@@ -154,9 +154,19 @@ export const worksheets = [
                 "frameTitle": "Week 6, part 2"
             },
             {
+                "title": "Part 2 - Texture filtering explanation",
+                "url": "markdown-viewer.html?file=Worksheets%2FW6%2Fp2%2FexplainFilters.md",
+                "frameTitle": "Week 6, part 2: Texture filtering explanation"
+            },
+            {
                 "title": "Part 3",
                 "url": "Worksheets/W6/p3/p.html",
                 "frameTitle": "Week 6, part 3"
+            },
+            {
+                "title": "Part 3 - Filtering choices explanation",
+                "url": "markdown-viewer.html?file=Worksheets%2FW6%2Fp3%2FexplainChoices.md",
+                "frameTitle": "Week 6, part 3: Filtering choices explanation"
             }
         ]
     },
@@ -173,6 +183,11 @@ export const worksheets = [
                 "title": "Part 2",
                 "url": "Worksheets/W7/p2/p.html",
                 "frameTitle": "Week 7, part 2"
+            },
+            {
+                "title": "Part 2 - Transformation explanation",
+                "url": "markdown-viewer.html?file=Worksheets%2FW7%2Fp2%2FTransformationExplanation.md",
+                "frameTitle": "Week 7, part 2: Transformation explanation"
             },
             {
                 "title": "Part 3",

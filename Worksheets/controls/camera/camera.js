@@ -5,6 +5,7 @@ const DEFAULT_CAMERA_VALUES = {
     eyeY: 0,
     eyeZ: 10,
     mouseSensitivity: 0.005,
+    orbitSpeed: 1.0,
 };
 const CAMERA_MOVEMENT_SPEED = 5;
 
@@ -48,13 +49,15 @@ export class CameraController {
             down: false,
         };
         this.orbiting = false;
-        this.wasOrbiting = false;
-        this.cameraAngle = 0;
+        this.orbitAngle = 0;
         this.previousFrameTime = 0;
         this.azimuth = 0;
         this.polar = Math.PI / 2;
         this.viewDistance = 1;
         this.hasUserOrientation = false;
+        this.orbitStartOffsetX = 0;
+        this.orbitStartOffsetY = 0;
+        this.orbitStartOffsetZ = 0;
 
         this.ready = this.initialize(settingsUrl);
     }
@@ -111,6 +114,9 @@ export class CameraController {
                     this.viewDistance = this.distanceToTarget(eyePosition);
                     if (!this.hasUserOrientation || this.viewDistance <= Number.EPSILON) {
                         this.setDirectionFromTarget(eyePosition);
+                    }
+                    if (this.orbiting) {
+                        this.resetOrbitFromEye();
                     }
                 }
             });
@@ -203,11 +209,10 @@ export class CameraController {
         this.button.addEventListener("click", () => {
             this.orbiting = !this.orbiting;
             if (this.orbiting) {
-                this.cameraAngle = 0;
                 this.previousFrameTime = 0;
-                if (!this.hasUserOrientation) {
-                    this.setDirectionFromTarget(this.eyePosition);
-                }
+                this.resetOrbitFromEye();
+            } else {
+                this.syncEyeControls(this.eyePosition);
             }
 
             this.button.textContent = this.orbiting
@@ -233,6 +238,26 @@ export class CameraController {
         );
     }
 
+    resetOrbitFromEye() {
+        this.orbitStartOffsetX = this.eyePosition[0] - this.at[0];
+        this.orbitStartOffsetY = this.eyePosition[1] - this.at[1];
+        this.orbitStartOffsetZ = this.eyePosition[2] - this.at[2];
+        this.orbitAngle = 0;
+    }
+
+    syncEyeControls(eyePosition) {
+        for (const [index, key] of ["eyeX", "eyeY", "eyeZ"].entries()) {
+            const input = this.controls.querySelector(`[data-slider-key="${key}"]`);
+            this.values[key] = eyePosition[index];
+            input.value = String(eyePosition[index]);
+            this.updateOutput(
+                this.controls.querySelector(`[data-slider-output="${key}"]`),
+                eyePosition[index],
+                input.step
+            );
+        }
+    }
+
     setView(eyePosition, lookAtPoint) {
         const eye = this.validatePosition(eyePosition, "eye position");
         const target = this.validatePosition(lookAtPoint, "look-at point");
@@ -255,6 +280,9 @@ export class CameraController {
         this.viewDistance = distance;
         this.setDirectionFromTarget(eye);
         this.hasUserOrientation = false;
+        if (this.orbiting) {
+            this.resetOrbitFromEye();
+        }
         this.V = viewMatrix;
         this.P = perspective(45, this.canvas.width / this.canvas.height, 0.01, 100);
 
@@ -332,27 +360,16 @@ export class CameraController {
 
         let nextEyePosition;
         if (this.orbiting) {
-            this.cameraAngle += deltaTime;
+            this.orbitAngle += deltaTime * this.values.orbitSpeed;
 
-            const cosAngle = Math.cos(this.cameraAngle);
-            const sinAngle = Math.sin(this.cameraAngle);
-            const offsetX = this.values.eyeX - this.at[0];
-            const offsetY = this.values.eyeY - this.at[1];
-            const offsetZ = this.values.eyeZ - this.at[2];
+            const cosAngle = Math.cos(this.orbitAngle);
+            const sinAngle = Math.sin(this.orbitAngle);
             nextEyePosition = vec3(
-                this.at[0] + offsetX * cosAngle + offsetZ * sinAngle,
-                this.at[1] + offsetY,
-                this.at[2] - offsetX * sinAngle + offsetZ * cosAngle
+                this.at[0] + this.orbitStartOffsetX * cosAngle + this.orbitStartOffsetZ * sinAngle,
+                this.at[1] + this.orbitStartOffsetY,
+                this.at[2] - this.orbitStartOffsetX * sinAngle + this.orbitStartOffsetZ * cosAngle
             );
         } else {
-            if (this.wasOrbiting) {
-                ["eyeX", "eyeY", "eyeZ"].forEach((key, index) => {
-                    const input = this.controls.querySelector(`[data-slider-key="${key}"]`);
-                    input.value = this.eyePosition[index];
-                    input.dispatchEvent(new Event("input", { bubbles: true }));
-                });
-            }
-
             nextEyePosition = vec3(
                 this.values.eyeX,
                 this.values.eyeY,
@@ -391,19 +408,7 @@ export class CameraController {
                         sidewaysAmount * rightDirection[2])
             );
             this.eyePosition = nextEyePosition;
-            this.values.eyeX = nextEyePosition[0];
-            this.values.eyeY = nextEyePosition[1];
-            this.values.eyeZ = nextEyePosition[2];
-
-            for (const [index, key] of ["eyeX", "eyeY", "eyeZ"].entries()) {
-                const input = this.controls.querySelector(`[data-slider-key="${key}"]`);
-                input.value = String(nextEyePosition[index]);
-                this.updateOutput(
-                    this.controls.querySelector(`[data-slider-output="${key}"]`),
-                    nextEyePosition[index],
-                    input.step
-                );
-            }
+            this.syncEyeControls(nextEyePosition);
         }
 
         try {
@@ -418,13 +423,14 @@ export class CameraController {
 
             this.eyePosition = nextEyePosition;
             this.V = nextViewMatrix;
+            if (this.orbiting) {
+                this.syncEyeControls(nextEyePosition);
+            }
         } catch (error) {
             console.error("lookAt failed; keeping the previous camera view:", error);
         }
 
         this.P = perspective(45, this.canvas.width / this.canvas.height, 0.01, 100);
-        this.wasOrbiting = this.orbiting;
-
         return { eyePosition: this.eyePosition, viewMatrix: this.V };
     }
 }
